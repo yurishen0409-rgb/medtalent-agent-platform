@@ -5,8 +5,9 @@ import { buildServicePlanSummary, emptyServicePlans, getServiceWorkflow, isServi
 
 const plan = (changes = {}) => ({ id: '术前准备清单', service: '术前准备清单', completed: ['整理已有检查与手术相关资料'], note: '想了解就诊前怎样整理报告。', targetDate: '2026-11-01', updatedAt: '2026-10-22T06:00:00.000Z', ...changes });
 
-test('all eleven agents have actionable workflows for every configured service', () => {
-  assert.equal(doctorProfiles.length, 11);
+test('all configured patient services retain actionable workflows; Xiong has none', () => {
+  assert.equal(doctorProfiles.length, 12);
+  assert.deepEqual(doctorProfiles.find(doctor => doctor.slug === 'xiong-dajing').services, []);
   let count = 0;
   for (const doctor of doctorProfiles) for (const service of doctor.services) {
     const workflow = getServiceWorkflow(doctor.slug, service);

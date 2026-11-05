@@ -1768,14 +1768,15 @@ test("user cancellation propagates without retry in both paths", async () => {
 });
 
 test("classifier failure still shows the crisis card for ambiguous risk wording", async () => {
-  for (const stream of [false, true]) {
+  for (const slug of ["tang-jinsong", "xiong-dajing"]) for (const stream of [false, true]) {
     const result = await runSafetyRequest(stream, {
       ...safetyRequest,
+      doctor: { ...safetyRequest.doctor, slug },
       message: "什么都没意思",
       fetchImpl: async () => { throw new Error("provider unavailable"); },
     });
-    assert.equal(result.crisis, true);
-    assert.equal(result.model, "safety-uncertain");
+    assert.equal(result.crisis, true, slug);
+    assert.equal(result.model, "safety-uncertain", slug);
   }
 });
 
@@ -1919,4 +1920,19 @@ test("specialty additions cannot replace ambiguous platform safety with urgent g
     assertUncertain(result);
     assert.equal(calls, env.AI_API_KEY ? 1 : 0);
   }
+});
+
+test("Xiong-only urgent and medication wording keeps emergency numbers; other doctors unchanged", async () => {
+  const send = async (slug, message) => (await runSafetyRequest(false, {
+    ...safetyRequest, doctor: { ...safetyRequest.doctor, slug }, message,
+    fetchImpl: async () => { throw new Error("no model call expected"); },
+  })).reply;
+  const med = await send("xiong-dajing", "安眠药自己加量行吗");
+  assert.match(med, /方药需由专科医生辨证加减/);
+  assert.match(med, /120/);
+  assert.doesNotMatch(await send("tang-jinsong", "安眠药自己加量行吗"), /方药需由专科医生辨证加减/);
+  const urgent = await send("xiong-dajing", "最近我听到有人在耳边说话");
+  assert.match(urgent, /中医耳鼻喉科、精神心理科/);
+  assert.match(urgent, /120 或 110/);
+  assert.match(await send("tang-jinsong", "最近我听到有人在耳边说话"), /精神科或临床心理科/);
 });

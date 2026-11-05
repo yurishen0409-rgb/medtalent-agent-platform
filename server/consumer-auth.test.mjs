@@ -212,13 +212,16 @@ test("provider errors are scrubbed, unknown sections/agents and malformed docume
   assert.equal((await a.request(documentPath("wellness-v1"), "PUT", { value: { large: "a".repeat(530000) }, expectedRevision: 0 })).status, 413);
 });
 
-test("all eleven agents persist service plans with account and doctor isolation, revisions and deletion", async t => {
+test("all agents with configured patient services persist plans with account and doctor isolation, revisions and deletion", async t => {
   const f = await fixture(t, { seedDoctors: doctorProfiles });
   const a = f.client(), b = f.client(), other = f.client();
   await f.login(a, "service-a"); await f.login(b, "service-b"); await f.login(other, "other-service");
   const expected = new Map();
   const findPlans = response => response.data.documents.find(document => document.section === "service-plans-v1");
-  for (const profile of doctorProfiles) {
+  const serviceDoctors = doctorProfiles.filter(profile => profile.services.length > 0);
+  assert.equal(serviceDoctors.length, 11);
+  assert.equal(serviceDoctors.some(profile => profile.slug === "xiong-dajing"), false);
+  for (const profile of serviceDoctors) {
     const route = `/api/user/data/${profile.slug}`;
     assert.equal(findPlans(await b.request(route + "?include=service-plans-v1")), undefined, "a different doctor's plans never fill this doctor's document");
     const value = { version: 1, plans: [{ id: `plan-${profile.slug}`, service: profile.services[0], completed: ["整理近期记录"], note: `只属于 ${profile.name}`, targetDate: "2028-02-29", updatedAt: "2026-10-22T08:00:00.000Z" }] };

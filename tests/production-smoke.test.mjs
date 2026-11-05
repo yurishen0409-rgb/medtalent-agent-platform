@@ -74,12 +74,13 @@ test("production build HTTP smoke (isolated data and random loopback port)", {
     assert.equal(response.headers.get("x-powered-by"), null);
   });
 
-  await t.test("fresh production data contains the 11 public seed agents without private configuration", async () => {
+  await t.test("fresh production data contains the 12 public seed agents without private configuration", async () => {
     const response = await request("/api/doctors");
     assert.equal(response.status, 200);
     const agents = await response.json();
-    assert.equal(agents.length, 11);
-    assert.equal(new Set(agents.map((agent) => agent.slug)).size, 11);
+    assert.equal(agents.length, 12);
+    assert.equal(new Set(agents.map((agent) => agent.slug)).size, 12);
+    assert.equal(agents.some((agent) => agent.slug === "xiong-dajing"), true);
     assert.equal(agents.some((agent) => agent.slug === "tang-jinsong"), true);
     assert.equal(agents.some((agent) => agent.slug === "qa-dynamic-public-0903"), false);
     assert.equal(agents.every((agent) => !Object.hasOwn(agent, "config") && !Object.hasOwn(agent, "systemPrompt")), true);
@@ -89,7 +90,7 @@ test("production build HTTP smoke (isolated data and random loopback port)", {
   });
 
   await t.test("SPA entry, admin route and nested doctor route serve built HTML", async () => {
-    for (const route of ["/", "/admin", "/d/tang-jinsong/"]) {
+    for (const route of ["/", "/admin", "/d/tang-jinsong/", "/d/xiong-dajing/", "/d/xiong-dajing/ask"]) {
       const response = await request(route);
       assert.equal(response.status, 200, `${route} should serve the SPA document`);
       assert.match(response.headers.get("content-type") || "", /text\/html/);

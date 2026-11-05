@@ -9,9 +9,10 @@ import { HEALTH_EDUCATION_DISCLAIMER } from "./chat-core.mjs";
 
 const expectedSlugs = [
   "fu-junfen", "chen-zhiling", "gong-wenbo", "chen-jinbiao", "wu-yuqin", "lin-jinfang",
-  "luo-jun", "yu-weihua", "zhou-yong", "yu-wen", "tang-jinsong",
+  "luo-jun", "yu-weihua", "zhou-yong", "yu-wen", "tang-jinsong", "xiong-dajing",
 ];
 const specialtyPromptHeadings = {
+  "xiong-dajing": "熊大经中医知识传承和传播｜理论渊源与理法方药",
   "fu-junfen": "儿童糖尿病与生长发育沟通重点",
   "chen-zhiling": "耳鼻喉症状与检查沟通重点",
   "gong-wenbo": "代谢管理与中医科普沟通重点",
@@ -49,7 +50,7 @@ async function listenLocally(app) {
   throw new Error("Unable to allocate a Fetch-compatible loopback test port");
 }
 
-test("all eleven seeded agents support published normal and streaming chat with inherited model configuration", async (t) => {
+test("all twelve seeded agents support published normal and streaming chat with inherited model configuration", async (t) => {
   assert.deepEqual(doctorProfiles.map((doctor) => doctor.slug).sort(), [...expectedSlugs].sort());
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "medtalent-seed-chat-test-"));
   const providerRequests = [];
@@ -97,12 +98,23 @@ test("all eleven seeded agents support published normal and streaming chat with 
       for (const [slug, heading] of Object.entries(specialtyPromptHeadings)) {
         if (slug !== expectedDoctor.slug) assert.ok(!payload.messages[0].content.includes(`【${heading}】`), "specialty instructions stay with the selected agent");
       }
-      assert.match(payload.messages[0].content, /聊天没有代办工具，不能声称已经保存/);
+      if (expectedDoctor.slug === "xiong-dajing") {
+        const prompt = payload.messages[0].content;
+        assert.doesNotMatch(prompt, /【服务计划与真实操作边界】|不引用方剂|不提供方药、方名、药名/);
+        assert.match(prompt, /可讲以上学术内容、方名、组成、配伍思路并标出处/);
+        assert.match(prompt, /用户说自己的症状或求方，不判断、不选方、不加减，建议面诊/);
+        assert.match(prompt, /不给剂量，不复述医案/);
+        assert.match(prompt, /分度标准回答“待提供”/);
+        assert.match(prompt, /吉雷通窍汤/);
+        assert.match(prompt, /辨治理论框架/);
+        assert.doesNotMatch(prompt, /\d+(?:\.\d+)?\s*(?:g\b|mg\b|克|毫克)|周某|曾某/i);
+      }
+      else assert.match(payload.messages[0].content, /聊天没有代办工具，不能声称已经保存/);
       assert.equal(payload.max_tokens, expectedDoctor.config.maxTokens);
       assert.equal(payload.temperature, expectedDoctor.config.temperature);
       assert.equal(payload.top_p, expectedDoctor.config.topP);
       assert.deepEqual(payload.messages.at(-1), { role: "user", content: "请介绍你的健康科普范围。" });
-      assert.ok(payload.messages.some((message) => message.content.includes("未检索到已审核且相关的知识资料")));
+      assert.ok(payload.messages.some((message) => message.content.includes(expectedDoctor.slug === "xiong-dajing" ? "未接录音稿和知识库" : "未检索到已审核且相关的知识资料")));
       providerRequests.push({ slug: expectedDoctor.slug, stream: payload.stream });
       const content = `测试助手 ${expectedDoctor.slug} 已收到健康科普问题。`;
       if (!payload.stream) return Response.json({ choices: [{ message: { content } }] });
@@ -158,10 +170,10 @@ test("all eleven seeded agents support published normal and streaming chat with 
       ]);
     });
   }
-  assert.equal(providerRequests.length, 22);
-  assert.equal(classificationRequests.length, 22, "Every doctor classifies once before each normal/streaming reply");
+  assert.equal(providerRequests.length, 24);
+  assert.equal(classificationRequests.length, doctorProfiles.length * 2, "every doctor classifies once before each normal/streaming reply");
   const usage = platform.database.sqlite.prepare("SELECT agent_slug,model,success FROM usage ORDER BY rowid").all();
-  assert.equal(usage.length, 22);
+  assert.equal(usage.length, 24);
   for (const slug of expectedSlugs) {
     const entries = usage.filter((entry) => entry.agent_slug === slug);
     assert.equal(entries.length, 2);
