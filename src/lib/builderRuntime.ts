@@ -1,9 +1,10 @@
 export { getBuilderComponents } from './agentBuilder.ts';
+import { doctorCustoms } from '../features/services/doctorCustom.ts';
 import type { DoctorProfile } from '../data/doctorProfiles';
 import type { SpecialtyRecordConfig } from './specialtyRecords';
 import type { AgentBuilderConfig, BuilderComponentId } from './agentBuilder';
 export type BuilderDoctor = Pick<DoctorProfile, 'slug'> & { builder?: AgentBuilderConfig; healthContextEnabled?: boolean };
-export const componentEnabled = (doctor: BuilderDoctor, id: BuilderComponentId) => doctor.builder ? doctor.builder.components.some(item => item.id === id && item.enabled) : true;
+export const componentEnabled = (doctor: BuilderDoctor, id: BuilderComponentId | 'me') => !doctorCustoms[doctor.slug]?.off.includes(id) && (id === 'me' || !doctor.builder || doctor.builder.components.some(item => item.id === id && item.enabled));
 export const usesWellness = (doctor: BuilderDoctor) => doctor.builder ? componentEnabled(doctor, 'wellness') : doctor.slug === 'yu-wen';
 export const usesTangRecords = (doctor: BuilderDoctor) => !doctor.builder && doctor.slug === 'tang-jinsong';
 export const voiceEnabled = (doctor: BuilderDoctor) => doctor.builder ? componentEnabled(doctor, 'voice') && doctor.builder.voice.enabled : doctor.slug === 'tang-jinsong';
@@ -13,9 +14,10 @@ export function configuredRecordConfig(doctor: BuilderDoctor, fallback: Specialt
   return { title: '日常健康记录', description: '按实际情况填写配置的健康指标，未测量的项目可留空。', fields: doctor.builder.recordFields.map(field => ({ key: field.key, label: field.label, unit: field.unit || '', min: field.min ?? -100000, max: field.max ?? 100000, step: field.step ?? 1, ...(field.type === undefined ? {} : {type:field.type}), ...(field.group === undefined ? {} : {group:field.group}), ...(field.options === undefined ? {} : {options:field.options}) })) };
 }
 export function configuredNavigation<T extends { id: string; label: string }>(doctor: BuilderDoctor, items: T[]): T[] {
-  if (!doctor.builder) return items;
-  const ids: Record<string, BuilderComponentId> = { home: 'home', ask: 'chat', manage: 'records', services: 'services' };
-  return items.filter(item => item.id === 'me' || componentEnabled(doctor, ids[item.id]) || item.id === 'manage' && (componentEnabled(doctor, 'assessments') || usesWellness(doctor)) || item.id === 'services' && usesWellness(doctor))
+  const ids: Record<string, BuilderComponentId | 'me'> = { home: 'home', ask: 'chat', manage: 'records', services: 'services', me: 'me' };
+  const available = items.filter(item => componentEnabled(doctor, ids[item.id]) || item.id === 'manage' && (componentEnabled(doctor, 'assessments') || usesWellness(doctor)) || item.id === 'services' && usesWellness(doctor));
+  if (!doctor.builder) return available.length === items.length ? items : available;
+  return available
     .map(item => { const component = doctor.builder!.components.find(value => value.id === ids[item.id]); return { ...item, label: component?.label || item.label }; })
     .sort((a,b) => (a.id === 'me' ? 10001 : doctor.builder!.components.find(item => item.id === ids[a.id])?.order ?? 10000) - (b.id === 'me' ? 10001 : doctor.builder!.components.find(item => item.id === ids[b.id])?.order ?? 10000));
 }

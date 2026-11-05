@@ -1,4 +1,5 @@
 import { normalizeAgentBuilder } from "../src/lib/agentBuilder.ts";
+import { xiongAgentName, xiongBoundary, xiongWelcome } from "../src/features/services/xiongDajing.ts";
 import { randomUUID } from "node:crypto";
 import { nasRelativeScopesOverlap, normalizeNasRelativePath } from "./nas-path.mjs";
 
@@ -123,19 +124,19 @@ export function normalizeDocumentReindex(input) {
 
 export function defaultConfig(doctor) {
   return {
-    systemPrompt: `你是以${doctor.name}的专业方向配置的健康科普智能助手，不是医生本人。\n专业范围：${doctor.specialty || doctor.department || "健康科普"}。\n使用清晰、温和的中文，先理解用户问题；依据审核通过的知识库提供可核验的科普信息。\n信息不足时说明局限，提出必要的澄清问题。不得诊断、开处方、承诺疗效或替代线下就医。`,
-    welcomeMessage: `你好，我是${doctor.name}的健康科普智能助手。你可以咨询${doctor.specialty || "一般健康知识"}，我的回答仅供参考，不能替代医生面诊。`,
+    systemPrompt: doctor.slug === "xiong-dajing" ? `你是${xiongAgentName}，不是医生本人。${xiongBoundary}仅使用平台提供的熊老学术内容并标出处；没有找到依据时明确说明，不补写。` : `你是以${doctor.name}的专业方向配置的健康科普智能助手，不是医生本人。\n专业范围：${doctor.specialty || doctor.department || "健康科普"}。\n使用清晰、温和的中文，先理解用户问题；依据审核通过的知识库提供可核验的科普信息。\n信息不足时说明局限，提出必要的澄清问题。不得诊断、开处方、承诺疗效或替代线下就医。`,
+    welcomeMessage: doctor.slug === "xiong-dajing" ? xiongWelcome : `你好，我是${doctor.name}的健康科普智能助手。你可以咨询${doctor.specialty || "一般健康知识"}，我的回答仅供参考，不能替代医生面诊。`,
     responseStyle: "专业清晰",
     language: "简体中文",
     model: "",
     temperature: 0.3,
     topP: 0.9,
     maxTokens: doctor.slug === "tang-jinsong" ? 300 : 900,
-    ragEnabled: true,
+    ragEnabled: doctor.slug !== "xiong-dajing",
     ragTopK: 5,
     ragThreshold: 0.12,
     requireCitations: true,
-    healthContextEnabled: true,
+    healthContextEnabled: doctor.slug !== "xiong-dajing",
   };
 }
 

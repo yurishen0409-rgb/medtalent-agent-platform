@@ -13,10 +13,12 @@ import {
 } from "@phosphor-icons/react";
 import { type CSSProperties, type FormEvent, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { xiongDemoProfile } from "../features/services/xiongDajing.ts";
 import { useDoctorDirectory } from "../hooks/useDoctorDirectory";
 import { doctorTopics, matchesDoctorTopic, type TopicKey } from "../lib/doctorTopics";
 
 const knowledgeFocus: Record<string, string> = {
+  "xiong-dajing": "鼻病与情志 · 理论渊源与辨治（演示版）",
   "fu-junfen": "儿童糖尿病与生长发育科普",
   "chen-zhiling": "鼻炎、听力与耳鼻喉健康科普",
   "gong-wenbo": "代谢健康与中医生活调养科普",
@@ -34,7 +36,8 @@ const topicIcons = { child: Baby, endocrine: Drop, ent: Ear, respiratory: Wind, 
 const topicOptions = doctorTopics.map((topic) => ({ ...topic, Icon: topicIcons[topic.key] }));
 
 export default function DoctorHub() {
-  const { doctors, loading, error, retry } = useDoctorDirectory();
+  const { doctors: publishedDoctors, loading, error, retry } = useDoctorDirectory();
+  const doctors = useMemo(() => publishedDoctors.map(xiongDemoProfile), [publishedDoctors]);
   const [query, setQuery] = useState("");
   const [activeTopic, setActiveTopic] = useState<TopicKey>("all");
   const doctorSectionRef = useRef<HTMLElement>(null);

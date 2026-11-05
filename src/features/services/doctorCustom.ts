@@ -1,4 +1,8 @@
 // 每位医生的差异化内容只改这个文件；页面和流程统一。
+import type { XiongPanel } from "./xiongDajing.ts";
+import { xiongAcademicNotice, xiongAgentName, xiongBoundary, xiongIdentity, xiongKnowledgeGroups, xiongPending, xiongReviewNote, xiongSources } from "./xiongDajing.ts";
+import { doctorExperiences, type DoctorExperience } from "../../data/doctorExperience.ts";
+import type { PublishedContent } from "../../hooks/useDoctorDirectory";
 // 模块位置固定：医生只用 off 关掉不要的功能，不能挪位置；要新增模块走定制开发。
 export type DoctorVideo = { title: string; url: string; platform: string; keywords: string[] };
 export type DoctorBio = {
@@ -13,7 +17,10 @@ export type DoctorBio = {
   clinics: { campus: string; times: string[]; image?: string }[];
 };
 export type DoctorCustom = {
-  featureGroups: { title: string; items: string[] }[];
+  theme?: DoctorExperience["theme"];
+  serviceDetails?: Record<string, PublishedContent & { question?: string; panel?: XiongPanel; related?: string[]; basis?: string; sourceLine?: string; figures?: { src: string; alt: string; caption: string }[] }>;
+  noticeLines?: string[];
+  featureGroups: { title: string; description?: string; items: string[] }[];
   off: string[];
   videos: DoctorVideo[];
   videoPlaceholders?: string[];
@@ -27,6 +34,31 @@ const common = { title: "常用功能", items: ["病友信息", "人工咨询", 
 const pending = "待医生提供";
 
 export const doctorCustoms: Record<string, DoctorCustom> = {
+  "xiong-dajing": {
+    theme: { accent: "#2F5553", accentStrong: "#2F5553", accentRgb: "47, 85, 83", surface: "#FFFCF6", canvas: "#F6F1E7", ink: "#2B2A28" },
+    servicesIntro: "鼻病与情志研究的理论渊源与辨治心法；方药内容为文献所载，请勿据此自行用药。",
+    featureGroups: xiongKnowledgeGroups.map(({ items, ...group }) => ({ ...group, items: items.map(item => item.title) })),
+    // off 同时控制模板组件和服务入口，不为知识传承另设页面或导航。
+    off: ["神经免疫调节", "records", "assessments", "wellness", "voice", "me", "量表自评", "量表测试", "睡眠日记", "用药记录", "戒烟管理", "复诊开方", "门诊指引", "就诊准备", "家属照护", "今日心境", "预约挂号", "病友信息", "人工咨询", "报告解读", "检查报告解读", "情绪预警", "放松训练", "放松练习", "练习打卡", "报告查询", "留言咨询", "更多服务"],
+    videos: [],
+    serviceDetails: Object.fromEntries(xiongKnowledgeGroups.flatMap((group, groupIndex) => group.items.map((item, index) => [item.title, {
+      id: `xiong-${groupIndex}-${index}`, type: "article" as const, title: item.title,
+      ...("question" in item ? { question: item.question } : {}),
+      ...(item.figures ? { figures: item.figures } : {}),
+      ...(item.panel ? { panel: item.panel } : {}),
+      ...(item.related ? { related: item.related } : {}),
+      ...(item.basis ? { basis: item.basis } : {}),
+      ...(["特色方药", "核心用药"].includes(group.title) && item.sources.length ? { sourceLine: item.sources.join("；") } : {}),
+      body: [group.description, item.body, "note" in item ? item.note : "", item.sources.length ? `依据：\n${item.sources.join("\n")}` : ""].filter(Boolean).join("\n\n"),
+    }]))),
+    noticeLines: [`本智能体用于鼻病与情志的学术学习与传承。回复由人工智能生成，不是医生本人回复。`, xiongAcademicNotice, "可讲文献所载内容并标出处；不给剂量，不判断个人病情，不能据此自行用药。", "如需心理支持，可拨打全国统一心理援助热线 12356；如可能立即伤害自己或出现身体急症，请立即拨打 120 或前往急诊。"],
+    expertSections: [
+      { title: "智能体名称", body: xiongAgentName },
+      { title: "身份", body: xiongIdentity },
+      { title: "传承", body: `2025-10-31 全国名中医传承工作站在杭州市中医院丁桥院区揭牌。陈志凌主任等三位弟子拜师。出处：${xiongSources.station}` },
+      { title: "使用说明", body: xiongBoundary },
+    ],
+  },
   "tang-jinsong": {
     servicesIntro: "了解怎么照顾自己，把就诊前的准备做好。",
     featureGroups: [

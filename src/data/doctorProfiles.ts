@@ -1,4 +1,5 @@
 import type { AgentBuilderConfig } from "../lib/agentBuilder";
+import { xiongAgentName, xiongBoundary, xiongIdentity, xiongQuestions } from "../features/services/xiongDajing.ts";
 export type Article = {
   id: string;
   title: string;
@@ -35,6 +36,14 @@ const profile = (
 ): DoctorProfile => ({ title: "专业健康空间", accentSoft: "#ecf5f3", ...base });
 
 export const doctorProfiles: DoctorProfile[] = [
+  profile({
+    slug: "xiong-dajing", name: xiongAgentName, portrait: "", portraitPosition: "50% 6%", hospital: "成都中医药大学", department: "待确认", title: "全国名中医",
+    specialty: "鼻病与情志多中心数据集 · 理论渊源与辨治", accent: "#2F5553", accentSoft: "#FFFCF6",
+    intro: `${xiongIdentity}${xiongBoundary}`,
+    quickQuestions: xiongQuestions,
+    topics: ["胆肺假说", "鼻五度辨证", "鼻全息论", "鼻腔宽大与情志"],
+    services: [], articles: [],
+  }),
   profile({
     slug: "fu-junfen", name: "傅君芬", portrait: "/assets/doctors/portraits/fu-junfen.png", portraitPosition: "51% 50%", hospital: "浙江大学医学院附属儿童医院", department: "儿童内分泌科",
     specialty: "儿童糖尿病与生长发育管理", accent: "#3b8d88", intro: "以儿童糖尿病日常管理为核心，帮助家庭整理血糖、胰岛素、饮食运动和低血糖风险信息，同时关注身高、体重与青春期发育。",

@@ -495,7 +495,7 @@ export async function createPlatformApp({ env = process.env, dataDir, seedDoctor
     const scopeGuidance = doctor.slug === "tang-jinsong" && classifyTangQuestion(message, req.body?.history) !== "related";
     if (!draftSlug && !crisis && await business.getActiveHandoff(req, slug)) throw new PlatformError("当前会话已由工作人员接管，请在人工协助入口继续沟通。", 409, "HUMAN_HANDOFF_ACTIVE");
     if (!draftSlug && !crisis && !scopeGuidance && modelSettings(env).configured) await access.consumeRequest(slug);
-    const retrieval = crisis || scopeGuidance || !modelSettings(env).configured ? { mode: "none", citations: [] }
+    const retrieval = doctor.slug === "xiong-dajing" || crisis || scopeGuidance || !modelSettings(env).configured ? { mode: "none", citations: [] }
       : draftSlug ? await searchPendingRelease(database,slug,message,{knowledge,env,fetchImpl,pendingSnapshot:pendingRelease,agent:doctor}) || await knowledge.search(slug,message,{published:false}) : await knowledge.search(slug, message, { published: true });
     const knowledgeContext = retrieval.citations.length ? buildKnowledgeContext(retrieval.citations, { requireCitations: doctor.config?.requireCitations !== false })
       : "本次未检索到已审核且相关的知识资料。不得声称引用了知识库或编造文献、来源编号；一般知识回答必须明确局限。";
