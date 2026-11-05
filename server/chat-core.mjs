@@ -161,6 +161,11 @@ export const MEDICAL_EMERGENCY_REPLY = "你描述的情况可能很紧急。请*
 export const OVERDOSE_REPLY = "请**立即拨打 120** 或马上去最近医院的急诊，并把药盒或药瓶带上；不要自行催吐；不要一个人待着，请身边的人陪你。";
 export const PSYCHOSIS_URGENT_REPLY = "你说的情况需要尽快请专业医生评估。请在家人陪同下，尽快到精神科或临床心理科就诊；如果出现想伤害自己或别人的念头，请立即拨打 120 或 110。";
 export const MEDICATION_SAFETY_REPLY = "请不要自己加量或改变吃法。药量需要开药医生根据你的情况调整；今晚如果睡不着，可以先起床做些放松的事。尽快联系开药医生；如果吃药后出现呼吸困难、叫不醒等情况，请立即拨打 120。";
+const XIONG_SAFETY_REPLIES = {
+  psychosis_urgent: "你说的情况需要尽快请专业医生评估。请在家人陪同下，尽快到中医耳鼻喉科、精神心理科或相关专科就诊评估；如果出现想伤害自己或别人的念头，请立即拨打 120 或 110。",
+  medication_safety: "方药需由专科医生辨证加减，请不要自行调整药量或吃法；若因鼻部不适或情志不畅导致无法入睡，可先尝试放松，切勿自行盲目服药。请尽快联系开药医生；如果吃药后出现呼吸困难、叫不醒等情况，请立即拨打 120。",
+};
+const safetyReplyFor = (doctor, category) => (doctor?.slug === "xiong-dajing" && XIONG_SAFETY_REPLIES[category]) || SAFETY_REPLIES[category];
 export const CRISIS_SUPPORT_REPLY = [
   "我很重视你现在的安全。如果危险正在发生、已经采取行动，或无法保证自己或他人的安全，请立即拨打 120 或 110，或直接前往最近的医院急诊。",
   "在确保安全前，请远离可能造成伤害的物品或环境，不要独自承担，也不要实施任何伤害行为。",
@@ -585,7 +590,7 @@ export function buildDoctorSystemPrompt(doctor) {
     doctor.config?.requireCitations === false
       ? "来源引用展示已关闭：使用相关知识时不添加来源编号或引用列表，但不得编造依据。"
       : "优先使用已审核的相关知识，并保留真实来源编号；没有来源时明确说明，不得编造引用。",
-    SERVICE_WORKFLOW_PROMPT,
+    ...(doctor.slug === "xiong-dajing" ? [] : [SERVICE_WORKFLOW_PROMPT]),
     ...(profile?.promptLines || []),
   ].join("\n");
 }
@@ -672,7 +677,7 @@ async function prepareChatRequest({ doctor, message, history, healthContext, kno
   const medicalSafety = detectMedicalSafetyRisk(question);
   if (medicalSafety) {
     return { crisisResult: {
-      reply: ensureHealthEducationDisclaimer(SAFETY_REPLIES[medicalSafety.category]),
+      reply: ensureHealthEducationDisclaimer(safetyReplyFor(doctor, medicalSafety.category)),
       model: medicalSafety.category === "medication_safety" ? "safety-guidance" : "safety-intervention",
       crisis: medicalSafety.category !== "medication_safety",
       crisisCategory: medicalSafety.category,
@@ -717,7 +722,7 @@ async function prepareChatRequest({ doctor, message, history, healthContext, kno
     } };
     const category = classification.category || "self_harm";
     if (classification.level === "clear_risk") return { crisisResult: {
-      reply: ensureHealthEducationDisclaimer(SAFETY_REPLIES[category]),
+      reply: ensureHealthEducationDisclaimer(safetyReplyFor(doctor, category)),
       model: "safety-intervention",
       crisis: true,
       crisisCategory: category,
@@ -758,7 +763,7 @@ async function prepareChatRequest({ doctor, message, history, healthContext, kno
     topP: doctor.config?.topP,
     messages: [
       { role: "system", content: buildDoctorSystemPrompt(doctor) },
-      ...(knowledgeContext ? [{ role: "system", content: knowledgeContext }] : []),
+      ...(doctor.slug === "xiong-dajing" ? [{ role: "system", content: "仅使用熊大经专属配置内提供的学术摘要和出处；未接录音稿和知识库。没有找到依据时明确说明。" }] : knowledgeContext ? [{ role: "system", content: knowledgeContext }] : []),
       ...normalizeHistory(history),
       { role: "user", content: appendHealthContext(question, normalizedHealthContext) },
     ],
