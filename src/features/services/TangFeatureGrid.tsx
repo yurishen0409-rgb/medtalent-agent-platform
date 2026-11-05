@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { BellRingingIcon, BookOpenIcon, CalendarCheckIcon, CigaretteSlashIcon, UsersThreeIcon, PillIcon, ChatTextIcon, MapPinIcon, ChartBarIcon, CheckCircleIcon, ClipboardTextIcon, DotsThreeCircleIcon, FileMagnifyingGlassIcon, FirstAidKitIcon, HeadsetIcon, LeafIcon, MoonIcon, PrescriptionIcon, SmileyIcon, SquaresFourIcon, StethoscopeIcon, UserListIcon, type Icon } from "@phosphor-icons/react";
 import type { DoctorCustom } from "./doctorCustom";
 
@@ -7,18 +8,23 @@ const icons: Record<string, Icon> = {
   复诊开方: PrescriptionIcon, 报告查询: FirstAidKitIcon, 更多服务: DotsThreeCircleIcon, 耳鼻喉症状自查: StethoscopeIcon, 术后康复指导: FirstAidKitIcon, 过敏季提醒: BellRingingIcon,
 };
 
-export default function TangFeatureGrid({ groups, onOpen }: { groups: DoctorCustom["featureGroups"]; onOpen: (action: string) => void }) {
+export default function TangFeatureGrid({ groups, onOpen, itemIcons, splitLabel }: { groups: DoctorCustom["featureGroups"]; onOpen: (action: string) => void; itemIcons?: Record<string, Icon>; splitLabel?: (label: string) => { section?: string; short: string } }) {
   return (
     <section className="tang-feature-grid" aria-label="功能入口">
       {groups.map(group => (
         <div key={group.title} className="tang-feature-group">
           <h2>{group.title}</h2>
-          <div>
-            {group.items.map(label => {
-              const ItemIcon = icons[label] || SquaresFourIcon;
-              return <button key={label} type="button" onClick={() => onOpen(label)}><span><ItemIcon size={22} weight="duotone" /></span><b>{label}</b></button>;
-            })}
-          </div>
+          {group.description && <p>{group.description}</p>}
+          {[...new Set(group.items.map(label => splitLabel?.(label).section))].map(section => <Fragment key={section || "all"}>
+            {section && <h3>{section}</h3>}
+            <div>
+              {group.items.filter(label => splitLabel?.(label).section === section).map(label => {
+                const ItemIcon = itemIcons?.[label] || icons[label] || SquaresFourIcon;
+                const short = splitLabel?.(label).short || label;
+                return <button key={label} type="button" aria-label={short === label ? undefined : label} onClick={() => onOpen(label)}><span><ItemIcon size={22} weight="duotone" /></span><b>{short}</b></button>;
+              })}
+            </div>
+          </Fragment>)}
         </div>
       ))}
     </section>

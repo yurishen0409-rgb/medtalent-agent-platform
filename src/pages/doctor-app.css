@@ -169,7 +169,7 @@
   color: #fff;
 }
 
-.journey-brandline b {
+.journey-brandline b , .xiong-profile-name {
   color: var(--journey-accent-strong);
   font-family: "STSong", "Songti SC", serif;
   font-size: 13px;
@@ -3391,3 +3391,189 @@
 .tang-home-videos > a svg { flex: none; color: var(--journey-accent-strong); }
 .tang-home-videos b { display: block; font-size: 14px; }
 .tang-home-videos small { display: block; margin-top: 3px; font-size: 12px; opacity: .7; }
+
+/* 熊老标题用思源宋体子集，保证各设备字形一致；放在演示版段外，该段由测试限定不写字体。改标题用字后须重新裁剪，见 tests/xiong-dajing.test.mjs。 */
+@font-face { font-family: "Xiong Title Serif"; src: url("/assets/fonts/xiong/source-han-serif-cn-semibold-titles.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+.is-xiong :is(h1, .journey-brandline b, .tang-card > header h2, .xiong-slots > h2, .journey-concerns > header h3) { font-family: "Xiong Title Serif", "Source Han Serif SC", "Noto Serif CJK SC", "Noto Serif SC", "STSong", "Songti SC", "SimSun", serif !important; }
+
+/* 熊老演示版：只替换主题颜色和长名称换行；警示卡、急症条不受覆盖。 */
+.is-xiong {
+  --xiong-card: #FFFCF6;
+  --xiong-muted: #595752;
+  --xiong-line: #D9D2C5;
+}
+.is-xiong.journey-stage,
+.is-xiong .journey-phone,
+.is-xiong .journey-content,
+.is-xiong .journey-home,
+.is-xiong .journey-services-panel,
+.is-xiong .journey-messages,
+.is-xiong .journey-chat,
+.is-xiong.tang-consent-stage { background: #F6F1E7; }
+.is-xiong :is(.journey-sheet, .journey-nav, .tang-feature-grid, .journey-chat-input, .tang-consent),
+.is-xiong .journey-concerns > button,
+.is-xiong .journey-bubble-row.assistant:not(.is-error) .journey-message-text { background: var(--xiong-card); border-color: var(--xiong-line); color: #2B2A28; }
+.is-xiong :is(.journey-phone, .journey-hero, .journey-inner-header, .journey-chat-input input) { border-color: var(--xiong-line); }
+.is-xiong :is(.journey-doctor-copy > p, .journey-doctor-copy > h2, .journey-services-panel > header > p, .journey-expert-note p, .journey-feature-lead, .journey-chat-identity > p, .journey-chat-identity > span, .journey-reply-disclaimer, .journey-sheet-disclaimer, .journey-no-citations, .journey-nav button, .tang-consent p) { color: var(--xiong-muted); }
+.is-xiong .journey-name-row { flex-wrap: wrap; }
+.is-xiong .journey-name-row h1 { max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 27px; line-height: 1.3; }
+.is-xiong .journey-chat-identity { min-width: 0; }
+.is-xiong .journey-chat-identity h1 { font-size: 18px; line-height: 1.35; overflow-wrap: anywhere; }
+.is-xiong .journey-chat-input input { background: var(--xiong-card); color: #2B2A28; }
+.is-xiong .journey-chat-input input::placeholder { color: var(--xiong-muted); }
+.is-xiong .journey-nav button.is-active,
+.is-xiong .tang-consent h1 { color: #2F5553; }
+.is-xiong .tang-consent button { background: #F6F1E7; color: #2F5553; }
+.is-xiong .tang-consent button + button { background: #2F5553; color: #FFFCF6; }
+.is-xiong .journey-published-body { color: #2B2A28; }
+.is-xiong .journey-expert-note { border-color: var(--xiong-line); }
+.is-xiong .journey-detail-figure { margin: 0 0 16px; }
+.is-xiong .journey-detail-figure img { display: block; width: 100%; height: auto; border: 1px solid var(--xiong-line, #D9D2C5); border-radius: 10px; background: #fff; }
+.is-xiong .journey-detail-figure figcaption { margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--xiong-muted, #595752); }
+.is-xiong .tang-feature-group > div { row-gap: 22px; }
+.is-xiong .tang-feature-group > p { margin: 2px 0 16px; font-size: 12px; line-height: 1.5; color: var(--xiong-muted, #595752); }
+.is-xiong .journey-hero-art.is-tang-photo { right: 0; width: 88px; height: 88px; overflow: visible; background: none; box-shadow: none; }
+.is-xiong .journey-hero-art.is-tang-photo img { position: static; display: block; width: 88px; height: 88px; padding: 3px; border: 2px solid rgba(var(--journey-accent-rgb), .38); border-radius: 50%; object-fit: cover; object-position: 50% 62%; }
+.is-xiong .journey-hero-art.is-tang-photo b { position: absolute; right: -2px; bottom: 2px; padding: 1px 6px; border: 1.5px solid #fff; border-radius: 999px; background: var(--journey-accent-strong); color: #fff; font-size: 11px; line-height: 1.4; }
+.is-xiong .journey-doctor-heading:has(.is-tang-photo) .journey-doctor-copy { width: calc(100% - 96px); }
+.is-xiong .journey-doctor-heading:has(.is-tang-photo) + .journey-specialty-tags { flex-wrap: wrap; overflow: visible; }
+.is-xiong .xiong-profile { display: grid; gap: 16px; color: #2B2A28; }
+.is-xiong .xiong-profile section { padding: 16px; border: 1px solid #D9D2C5; border-radius: 14px; background: #FFFCF6; box-shadow: none; }
+.is-xiong .xiong-profile p { margin: 0; color: #595752; font-size: 15px; line-height: 1.6; }
+.is-xiong .xiong-profile-name { margin: 0 0 10px; font-size: 22px; font-weight: 600; color: #2B2A28; }
+.is-xiong .xiong-profile-honors { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
+.is-xiong .xiong-profile-honors li { padding: 2px 8px; border: 1px solid #2F5553; border-radius: 4px; color: #2F5553; font-size: 12px; line-height: 1.6; }
+.is-xiong .xiong-profile h3 { margin: 0 0 12px; padding-left: 8px; border-left: 3px double #2F5553; color: #2B2A28; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.is-xiong .xiong-profile-lineage { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.is-xiong .xiong-profile-lineage li { position: relative; padding-left: 16px; color: #595752; font-size: 15px; line-height: 1.6; }
+.is-xiong .xiong-profile-lineage li::before { content: ""; position: absolute; left: 0; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: #2F5553; }
+.is-xiong .xiong-profile-lineage li:not(:last-child)::after { content: ""; position: absolute; left: 3px; top: 18px; bottom: -14px; width: 1px; background: #D9D2C5; }
+.is-xiong .xiong-profile-refs { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.is-xiong .xiong-profile-refs li { display: flex; gap: 8px; color: #595752; font-size: 14px; line-height: 1.55; }
+.is-xiong .xiong-profile-refs svg { flex: none; margin-top: 3px; color: #2F5553; }
+
+.is-xiong .xiong-panel-steps { display: grid; gap: 10px; margin: 0 0 16px; padding: 0; list-style: none; counter-reset: step; }
+.is-xiong .xiong-panel-steps li { position: relative; padding: 12px 12px 12px 42px; border: 1px solid #D9D2C5; border-radius: 12px; background: #FFFCF6; counter-increment: step; }
+.is-xiong .xiong-panel-steps li::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 22px; height: 22px; border-radius: 50%; background: #2F5553; color: #FFFCF6; font-size: 13px; line-height: 22px; text-align: center; }
+.is-xiong .xiong-panel-steps b { color: #2B2A28; font-size: 15px; }
+.is-xiong .xiong-panel-steps p, .is-xiong .xiong-panel-degrees p, .is-xiong .xiong-panel-herbs > p { margin: 4px 0 0; color: #595752; font-size: 14px; line-height: 1.6; }
+.is-xiong .xiong-panel-degrees { display: grid; gap: 8px; margin: 0 0 16px; }
+.is-xiong .xiong-panel-degrees details { padding: 12px; border: 1px solid #D9D2C5; border-radius: 12px; background: #FFFCF6; }
+.is-xiong .xiong-panel-degrees summary { color: #2F5553; font-size: 15px; font-weight: 600; cursor: pointer; }
+.is-xiong .xiong-panel-herbs { margin: 0 0 16px; padding: 12px; border: 1px solid #D9D2C5; border-radius: 12px; background: #FFFCF6; }
+.is-xiong .xiong-panel-herbs > div { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.is-xiong .xiong-panel-herbs button { min-height: 36px; padding: 4px 14px; border: 1px solid #D9D2C5; border-radius: 18px; background: #FFFCF6; color: #595752; font-size: 14px; }
+.is-xiong .xiong-panel-herbs button.is-related { border-color: #2F5553; color: #2F5553; }
+.is-xiong .xiong-panel-herbs button.is-selected { border-color: #2F5553; background: #2F5553; color: #FFFCF6; }
+.is-xiong .xiong-panel-herbs b { color: #2B2A28; }
+
+.is-xiong .tang-feature-group h3 { margin: 18px 0 12px; font-size: 14px; font-weight: 600; color: #2F5553; }
+.is-xiong .journey-sheet > h2 { padding-right: 48px; font-size: 24px; line-height: 1.3; }
+.is-xiong .tang-feature-group button { min-height: 0; height: auto; justify-content: flex-start; }
+.is-xiong :is(.journey-hero-art.is-tang-photo, .journey-mini-avatar, .journey-bubble-avatar.is-doctor) img { object-fit: cover; object-position: 50% 0; }
+.is-xiong .xiong-theory { margin-top: 18px; padding: 16px; border: 1px solid var(--xiong-line, #D9D2C5); border-radius: 14px; background: var(--xiong-card, #FFFCF6); }
+.is-xiong .xiong-theory h2 { margin: 0 0 6px; font-size: 17px; color: #2B2A28; }
+.is-xiong .xiong-theory p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--xiong-muted, #595752); }
+.is-xiong .xiong-theory button { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin-top: 2px; padding: 0; border: 0; background: none; font-size: 14px; font-weight: 600; color: #2F5553; }
+.is-xiong .xiong-theory > p { margin: 10px 0 8px; }
+.is-xiong .xiong-theory header { display: flex; align-items: center; justify-content: space-between; }
+.is-xiong .xiong-theory header button { margin: 0; }
+.is-xiong .xiong-theory [role="tablist"] { display: flex; gap: 6px; }
+.is-xiong .xiong-theory [role="tablist"] button { flex: 1; min-height: 44px; margin: 0; padding: 0 2px; justify-content: center; border-bottom: 2px solid var(--xiong-line, #D9D2C5); font-size: 14px; font-weight: 500; color: var(--xiong-muted, #595752); }
+.is-xiong .xiong-theory [role="tablist"] button.is-active { border-bottom-color: #2F5553; font-weight: 600; color: #2F5553; }
+.is-xiong .xiong-theory ul { margin: 0; padding: 0; list-style: none; }
+.is-xiong .xiong-theory li + li { border-top: 1px solid var(--xiong-line, #D9D2C5); }
+.is-xiong .xiong-theory li button { width: 100%; margin: 0; text-align: left; font-size: 14px; font-weight: 500; color: #2B2A28; }
+.is-xiong .xiong-source-line { display: block; margin-bottom: 8px; font-size: 12px; line-height: 1.5; color: var(--xiong-muted, #595752); }
+.is-xiong .xiong-basis { margin: 0 0 12px; padding: 8px 10px; border-left: 3px solid #2F5553; font-size: 14px; font-weight: 600; color: #2F5553; }
+.is-xiong .xiong-related { margin: 14px 0; padding-top: 12px; border-top: 1px solid var(--xiong-line, #D9D2C5); }
+.is-xiong .xiong-related b { display: block; margin-bottom: 4px; font-size: 13px; color: var(--xiong-muted, #595752); }
+.is-xiong .xiong-related button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; font-size: 14px; font-weight: 600; color: #2F5553; }
+.is-xiong .tang-feature-group > p { font-weight: 600; }
+.is-xiong .xiong-theory [role="tablist"] button { font-size: 13px; }
+.is-xiong .xiong-theory > div { display: flex; gap: 6px; }
+.is-xiong .xiong-theory > div button { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 76px; padding: 10px 2px; border: 0; border-radius: 12px; background: #E4EEEA; color: #2F5553; }
+.is-xiong .xiong-theory > div b { font-size: 22px; font-weight: 500; }
+.is-xiong .xiong-theory > div span { font-size: 12px; }
+.is-xiong .xiong-slots > div { display: flex; gap: 10px; }
+.is-xiong .xiong-slots > div > span { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 3; border-radius: 10px; background: #EFE9DC; color: #8A8578; }
+.is-xiong .journey-hero, .is-xiong .journey-home { background: #F6F1E7; }
+.is-xiong .journey-hero::before, .is-xiong .journey-hero::after, .is-xiong .xiong-theory::before, .is-xiong .xiong-theory::after { display: none; }
+.is-xiong .journey-brandline span { border: 0; border-radius: 4px; background: #2F5553; color: #FFFCF6; }
+.is-xiong .journey-brandline b { color: #595752; }
+.is-xiong .journey-name-row { flex-wrap: nowrap; align-items: center; gap: 10px; }
+.is-xiong .journey-name-row h1 { white-space: nowrap; font-size: 22px; color: #2B2A28; }
+.is-xiong .journey-name-row > span { flex: none; padding: 4px 8px; border: 1px solid #D9D2C5; border-radius: 4px; background: transparent; font-size: 12px; line-height: 1.4; color: #595752; }
+.is-xiong .journey-doctor-copy > p { font-size: 14px; color: #595752; }
+.is-xiong .journey-doctor-copy > h2 { margin-top: 12px; font-size: 16px; color: #2B2A28; }
+.is-xiong .journey-hero-art.is-tang-photo img { border: 1px solid #D9D2C5; outline: 0; background: #FFFCF6; }
+.is-xiong .journey-specialty-tags span { padding: 4px 8px; border: 1px solid #D9D2C5; border-radius: 4px; background: transparent; font-size: 12px; line-height: 1.4; color: #595752; }
+.is-xiong .journey-primary-button { border-radius: 4px; background: #2F5553; color: #FFFCF6; font-size: 16px; box-shadow: none; }
+.is-xiong .journey-tang-start p { font-size: 14px; color: #595752; }
+.is-xiong :is(.xiong-theory > h2, .xiong-slots > h2, .tang-card > header h2, .journey-concerns > header h3) { display: block; margin: 0 0 12px; padding: 0 0 0 8px; border: 0; border-left: 4px solid #2F5553; border-radius: 0; outline: 0; font-size: 18px; font-weight: 600; line-height: 1.2; color: #2B2A28; }
+.is-xiong .tang-card > header h2 { margin: 0; }
+.is-xiong :is(.xiong-theory, .xiong-slots, .tang-card) { padding: 16px; border: 1px solid #D9D2C5; border-radius: 12px; background: #FFFCF6; box-shadow: none; text-align: left; }
+.is-xiong :is(.xiong-slots, .tang-card) { margin: 16px 16px 0; }
+.is-xiong .xiong-theory { margin: 16px 0 0; }
+.is-xiong .tang-card-tabs { gap: 8px; padding: 0; border-radius: 0; background: transparent; }
+.is-xiong .tang-card-tabs button { min-height: 44px; border: 1px solid #D9D2C5; border-radius: 4px; background: #FFFCF6; box-shadow: none; font-size: 14px; color: #595752; }
+.is-xiong .tang-card-tabs button.is-active { border-color: #2F5553; background: #2F5553; font-weight: 600; color: #FFFCF6; }
+.is-xiong .tang-card-panel :is(p, li) { font-size: 14px; line-height: 1.7; color: #2B2A28; }
+.is-xiong .xiong-theory > div button { min-height: 72px; margin: 0; border: 1px solid #D9D2C5; border-radius: 4px; background: #FFFCF6; color: #2B2A28; }
+.is-xiong .xiong-theory > div b { font-size: 16px; font-weight: 600; color: #2F5553; }
+.is-xiong .xiong-theory > div span { font-size: 12px; font-weight: 400; color: #595752; }
+.is-xiong .xiong-slots > div { gap: 12px; }
+.is-xiong .xiong-slots > div > span { border: 1px solid #D9D2C5; border-radius: 4px; background: #F6F1E7; color: #595752; }
+.is-xiong .journey-concerns { margin: 16px 16px 0; padding: 0; }
+.is-xiong .journey-concerns > button { min-height: 44px; height: auto; padding: 12px; border: 1px solid #D9D2C5; border-radius: 12px; background: #FFFCF6; box-shadow: none; font-size: 14px; color: #2B2A28; }
+.is-xiong .journey-concerns > button b { font-size: 14px; font-weight: 500; }
+.is-xiong .journey-hero { padding-left: 16px; padding-right: 16px; }
+.is-xiong .xiong-doctrine-nav { position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #D9D2C5; background: #F6F1E7; }
+.is-xiong .xiong-doctrine-nav button { flex: 1 1 0; min-width: 0; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid #D9D2C5; border-radius: 4px; background: #FFFCF6; color: #595752; }
+.is-xiong .xiong-doctrine-nav b { font-size: 16px; font-weight: 600; color: #2F5553; }
+.is-xiong .xiong-doctrine-nav span { font-size: 12px; }
+.is-xiong .xiong-doctrine-nav button.is-active { border-color: #2F5553; background: #2F5553; color: #FFFCF6; }
+.is-xiong .xiong-doctrine-nav button.is-active b { color: #FFFCF6; }
+.is-xiong .xiong-degrees { margin: 16px 16px 0; padding: 16px; border: 1px solid #D9D2C5; border-radius: 12px; background: #FFFCF6; }
+.is-xiong .xiong-degrees h2 { margin: 0 0 12px; padding-left: 8px; border-left: 4px solid #2F5553; font-size: 18px; font-weight: 600; line-height: 1.2; color: #2B2A28; }
+.is-xiong .xiong-degrees ul { margin: 0; padding: 0; list-style: none; }
+.is-xiong .xiong-degrees li { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.is-xiong .xiong-degrees li + li { border-top: 1px solid #D9D2C5; }
+.is-xiong .xiong-degrees i { flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #2F5553; border-radius: 50%; font-size: 12px; font-style: normal; color: #2F5553; }
+.is-xiong .xiong-degrees b { flex: none; font-size: 14px; font-weight: 600; color: #2B2A28; }
+.is-xiong .xiong-degrees span { font-size: 12px; color: #595752; }
+.is-xiong .journey-brandline span { border: 1px solid #D9D2C5; border-radius: 4px; background: transparent; color: #595752; }
+.is-xiong .journey-brandline b { font-weight: 400; color: #595752; }
+.is-xiong .journey-name-row { align-items: center; gap: 8px; }
+.is-xiong .journey-name-row h1 { font-size: 22px; font-weight: 600; color: #2B2A28; }
+.is-xiong .journey-name-row > span { height: auto; min-height: 0; padding: 2px 6px; border: 1px solid #D9D2C5; border-radius: 4px; background: #FFFCF6; font-size: 12px; color: #595752; }
+.is-xiong .journey-hero-art.is-tang-photo img { padding: 0; border: 1px solid #D9D2C5; outline: 0; background: transparent; box-shadow: none; }
+.is-xiong .journey-hero-art.is-tang-photo b { right: 0; bottom: 4px; padding: 2px 5px; border: 1px solid #F6F1E7; border-radius: 4px; background: #2F5553; font-size: 10px; font-weight: 500; color: #FFFCF6; }
+.is-xiong .journey-hero { padding-bottom: 8px; border-bottom: 0; }
+.is-xiong .journey-specialty-tags { margin-top: 12px; gap: 8px; }
+.is-xiong .journey-specialty-tags span { padding: 4px 10px; border: 1px solid #D9D2C5; border-radius: 4px; background: #FFFCF6; color: #595752; }
+.is-xiong .journey-tang-start p { margin-top: 10px; color: #595752; }
+.is-xiong :is(.tang-card-panel p, .xiong-profile p) { font-size: 14px; line-height: 1.65; text-align: justify; color: #595752; }
+.is-xiong .journey-hero { position: relative; overflow: hidden; }
+.is-xiong .journey-hero::before { content: ""; display: block; position: absolute; inset: 0 0 auto; width: 100%; height: 160px; pointer-events: none; z-index: 0; opacity: .12; background: url("data:image/svg+xml,%3Csvg viewBox='0 0 375 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 100 Q 60 70 120 90 T 260 70 T 375 80 V 0 H 0 Z' fill='%232F5553'/%3E%3Cpath d='M0 130 Q 90 100 160 120 T 310 100 T 375 110 V 0 H 0 Z' fill='%232F5553' opacity='0.5'/%3E%3C/svg%3E") top center / cover no-repeat; }
+.is-xiong :is(.journey-topbar, .journey-doctor-heading, .journey-specialty-tags, .journey-tang-start) { position: relative; z-index: 1; }
+.is-xiong :is(.xiong-slots > h2, .tang-card > header h2, .journey-concerns > header h3, .xiong-degrees h2, .tang-feature-group > h2) { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; font-size: 18px; font-weight: 600; line-height: 1.2; color: #2B2A28; }
+.is-xiong :is(.xiong-slots > h2, .tang-card > header h2, .journey-concerns > header h3, .xiong-degrees h2, .tang-feature-group > h2)::before { content: ""; flex: none; width: 14px; height: 14px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232F5553' stroke-width='2'%3E%3Crect x='3' y='10' width='10' height='10' transform='rotate(-45 8 15)'/%3E%3Crect x='11' y='10' width='10' height='10' transform='rotate(-45 16 15)'/%3E%3C/svg%3E") center / contain no-repeat; }
+.is-xiong .tang-feature-group h3 { margin: 12px 0 8px; padding-bottom: 8px; border-bottom: 1px dashed #D9D2C5; font-size: 16px; font-weight: 600; color: #2F5553; }
+.is-xiong .tang-feature-group > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.is-xiong .tang-feature-group button { flex: 0 0 calc(50% - 4px); min-width: 0; min-height: 44px; flex-direction: row; justify-content: center; padding: 4px 8px; border: 1px solid #D9D2C5; border-radius: 4px; background: #F6F1E7; text-align: center; }
+.is-xiong .tang-feature-group button > span { display: none; }
+.is-xiong .tang-feature-group button b { font-size: 14px; font-weight: 400; line-height: 1.3; color: #2B2A28; }
+.is-xiong .xiong-doctrine-nav svg { color: inherit; }
+.is-xiong .journey-name-row h1 { font-size: 34px; line-height: 1.15; }
+.is-xiong .journey-doctor-heading h2 { white-space: nowrap; font-size: clamp(13px, 4.2vw, 16px); }
+.is-xiong a.xiong-link-card { display: block; color: #2B2A28; text-decoration: none; }
+.is-xiong .xiong-link-cover { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid #D9D2C5; border-radius: 4px; background: #F6F1E7; }
+.is-xiong .xiong-cover-placeholder { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 96px; height: 100%; background: #F6F1E7; color: #6B6558; font-size: 13px; }
+.is-xiong .xiong-link-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.is-xiong .xiong-link-cover i { position: absolute; left: 50%; top: 50%; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #2F5553; color: #FFFCF6; transform: translate(-50%, -50%); }
+.is-xiong .xiong-link-card b { display: block; margin-top: 10px; font-size: 15px; font-weight: 600; line-height: 1.45; }
+.is-xiong .xiong-link-card small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.4; color: #595752; }
+.is-xiong .xiong-link-cover.is-video img { object-position: center top; }
+.is-xiong .xiong-link-cover i { left: auto; top: auto; right: 10px; bottom: 10px; width: 44px; height: 44px; transform: none; }
+.is-xiong .xiong-link-cover i svg { display: block; width: 20px; height: 20px; fill: #FFFCF6; color: #FFFCF6; }

@@ -30,12 +30,12 @@ export function TangHomeDock({ onExpert, onAsk }: { onExpert: () => void; onAsk:
 }
 
 // Render the application only after consent, including direct /ask entries.
-export function TangConsent({ storageKey, lines, children, isTang = false }: { isTang?: boolean; storageKey: string; lines: string[]; children: ReactNode }) {
+export function TangConsent({ storageKey, lines, children, isTang = false, className = "" }: { className?: string; isTang?: boolean; storageKey: string; lines: string[]; children: ReactNode }) {
   const [agreed, setAgreed] = useState(() => { try { return localStorage.getItem(storageKey) === 'agreed'; } catch { return false; } });
   const [declined, setDeclined] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   if (agreed) return <>{children}</>;
-  return <div className={`tang-consent-stage${isTang ? " is-tang-agent" : ""}`}><section className="tang-consent" role="dialog" aria-modal="true" aria-labelledby="tang-consent-title">
+  return <div className={`tang-consent-stage${isTang ? " is-tang-agent" : ""}${className ? ` ${className}` : ""}`}><section className="tang-consent" role="dialog" aria-modal="true" aria-labelledby="tang-consent-title">
     <h1 id="tang-consent-title" ref={heading} tabIndex={-1}>使用前请了解</h1>
     {lines.map(line => <p key={line} className="tang-consent-text">{line}</p>)}
     <p>使用前，请阅读《用户协议》和《隐私政策》。</p>
