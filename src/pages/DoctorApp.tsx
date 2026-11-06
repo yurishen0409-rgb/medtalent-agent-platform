@@ -398,7 +398,7 @@ function XiongLinkCard({ title, href, cover, label, source, isVideo }: { title: 
   return <section className="tang-home-videos xiong-slots" aria-label={title}><h2>{title}</h2>
     <a className="xiong-link-card" href={href} target="_blank" rel="noopener noreferrer">
       <span className={isVideo ? "xiong-link-cover is-video" : "xiong-link-cover"}>{cover ? <img src={cover} alt="" /> : <small className="xiong-cover-placeholder">封面待提供</small>}{isVideo && <i aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></i>}</span>
-      <b>{label}</b><small>{source}</small>
+      <b>{label}</b><small>{source}{cover && " · 封面图片来自公开渠道"}</small>
     </a>
   </section>;
 }
