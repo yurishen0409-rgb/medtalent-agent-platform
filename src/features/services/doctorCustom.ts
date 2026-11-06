@@ -80,6 +80,8 @@ export const doctorCustoms: Record<string, DoctorCustom> = {
     // 本地 mp4 只用于本机演示，文件不进补丁；上线换成正式播放地址。
     videos: [{ title: "什么是精神分裂症", url: "", platform: "邵逸夫医院 唐劲松", keywords: ["精神分裂症"] }],
     videoPlaceholders: ["失眠时可以先做什么", "怎样陪伴情绪低落的家人"],
+    // 照片来自本人 11-02 提供的医生简介图，授权待确认；2026-11-06 本人要求恢复显示。
+    introPhoto: "/assets/doctors/portraits/tang-jinsong-intro.jpeg",
     // 文字转录自本人 11-02 提供的医生简介图和挂号页截图，未经医生核对，上线前必须核对。
     bio: {
       department: "精神卫生科",

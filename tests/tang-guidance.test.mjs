@@ -159,3 +159,10 @@ test('old snapshots stay valid and supplementary strings have bounded safe resto
   const invalid = normalizeTangResults([{ ...old, supplement: ['not', 'text'] }])[0];
   assert.equal('supplement' in invalid, false);
 });
+
+test('唐劲松首页头像文件在且已配置', async () => {
+  const { readFile, access } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/features/services/doctorCustom.ts', import.meta.url), 'utf8');
+  assert.match(source, /introPhoto: "\/assets\/doctors\/portraits\/tang-jinsong-intro\.jpeg"/);
+  await access(new URL('../public/assets/doctors/portraits/tang-jinsong-intro.jpeg', import.meta.url));
+});

@@ -15,3 +15,4 @@
 | 周勇 | `zhou-yong.jpg` | https://www.srrsh.com/expertInfo/128 |
 | 喻雯 | `yu-wen-user-web.jpg` | 项目方提供的照片，生成 800×800 展示版本；部署者复用前须确认肖像授权 |
 - xiong-dajing.jpg：本人 2026-11-04 提供，本人说明来源于公开渠道（具体链接未记录），使用授权待确认。
+- tang-jinsong-intro.jpeg：取自本人 2026-11-02 提供的唐劲松医生简介图，使用授权待确认；2026-11-06 本人要求恢复首页显示。
