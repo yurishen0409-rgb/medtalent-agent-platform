@@ -53,7 +53,7 @@ test('Xiong is registered with six questions and no inherited clinical metadata 
   assert.equal(doctor.accent, '#2F5553');
   assert.equal(doctor.accentSoft, '#FFFCF6');
   assert.deepEqual(compiled.exports.createGenericExperience(doctor).theme, { accent: '#2F5553', accentStrong: '#2F5553', accentRgb: '47, 85, 83', surface: '#FFFCF6', canvas: '#F6F1E7', ink: '#2B2A28' });
-  assert.equal(chen.accent, '#477b91');
+  assert.equal(chen.accent, '#3B9A70');
   assert.equal(doctorTabPath(doctor.slug, 'ask'), '/d/xiong-dajing/ask');
   assert.equal(resolveDoctorEntryTab('/d/xiong-dajing/ask', doctor.slug, () => 'manage'), 'ask');
 });
@@ -363,14 +363,14 @@ test('Tang and Chen keep their template wording, theme and navigation', () => {
     const home = render('HomePanel', props);
     const services = render('ServicesPanel', props);
     const chat = render('AskPanel', { ...props, initialQuestion: '', initialAutoSend: false, initialShareHealthRecords: false, onConsumeInitialQuestion() {} });
-    assert.match(home, /本周大家最关心/);
+    assert.match(home, slug === 'tang-jinsong' ? /本周大家最关心/ : /常见问题/);
     assert.match(services, /专业健康服务/);
     assert.match(chat, /健康科普智能助手/);
     assert.match(chat, /健康科普仅供参考，急症请立即拨打 120/);
     assert.doesNotMatch(home + services + chat, /研究与规范|可以这样问|待线上会确定|鼻病与情志智能体/);
     assert.equal(compiled.exports.doctorNavigation(other).find(item => item.id === 'ask').label, '问医生');
-    assert.equal(other.accent, slug === 'tang-jinsong' ? '#2f8f65' : '#477b91');
-    assert.equal(doctorExperiences[slug].theme.canvas, slug === 'tang-jinsong' ? '#F3F7F2' : '#F5F1EA');
+    assert.equal(other.accent, slug === 'tang-jinsong' ? '#2f8f65' : '#3B9A70');
+    assert.equal(doctorExperiences[slug].theme.canvas, '#F3F7F2');
   }
 });
 

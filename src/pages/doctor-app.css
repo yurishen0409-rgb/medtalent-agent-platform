@@ -3392,6 +3392,14 @@
 .tang-home-videos b { display: block; font-size: 14px; }
 .tang-home-videos small { display: block; margin-top: 3px; font-size: 12px; opacity: .7; }
 
+.tang-article { background: #fff; }
+.tang-article summary { display: flex; flex-direction: column; gap: 4px; cursor: pointer; list-style: none; }
+.tang-article summary::-webkit-details-marker { display: none; }
+.tang-article[open] summary { margin-bottom: 10px; }
+.tang-article p { margin: 0 0 8px; font-size: 14px; line-height: 1.65; }
+.tang-article p + p { margin-top: 10px !important; }
+.tang-article-source { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; opacity: .75; }
+
 /* 熊老标题用思源宋体子集，保证各设备字形一致；放在演示版段外，该段由测试限定不写字体。改标题用字后须重新裁剪，见 tests/xiong-dajing.test.mjs。 */
 @font-face { font-family: "Xiong Title Serif"; src: url("/assets/fonts/xiong/source-han-serif-cn-semibold-titles.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 .is-xiong :is(h1, .journey-brandline b, .tang-card > header h2, .xiong-slots > h2, .journey-concerns > header h3) { font-family: "Xiong Title Serif", "Source Han Serif SC", "Noto Serif CJK SC", "Noto Serif SC", "STSong", "Songti SC", "SimSun", serif !important; }

@@ -1768,16 +1768,21 @@ test("user cancellation propagates without retry in both paths", async () => {
 });
 
 test("classifier failure still shows the crisis card for ambiguous risk wording", async () => {
+  const { generateChatReply: unifiedReply } = await import("./chat-core.mjs");
+  const request = {
+    ...safetyRequest,
+    message: "什么都没意思",
+    fetchImpl: async () => { throw new Error("provider unavailable"); },
+  };
   for (const slug of ["tang-jinsong", "xiong-dajing"]) for (const stream of [false, true]) {
-    const result = await runSafetyRequest(stream, {
-      ...safetyRequest,
-      doctor: { ...safetyRequest.doctor, slug },
-      message: "什么都没意思",
-      fetchImpl: async () => { throw new Error("provider unavailable"); },
-    });
+    const result = await runSafetyRequest(stream, { ...request, doctor: { ...safetyRequest.doctor, slug } });
     assert.equal(result.crisis, true, slug);
     assert.equal(result.model, "safety-uncertain", slug);
   }
+  // 陈志凌 uses the same platform safety path.
+  const chen = await unifiedReply({ ...request, doctor: { ...safetyRequest.doctor, slug: "chen-zhiling" } });
+  assert.equal(chen.crisis, true);
+  assert.equal(chen.model, "safety-uncertain");
 });
 
 // Compare the public streaming and ordinary paths to Tang's established routing,
