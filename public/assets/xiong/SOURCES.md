@@ -6,3 +6,5 @@
 | --- | --- | --- |
 | `lecture-cover.jpg` | 首页“名家讲堂” | CCTV4《健康中国》视频号，2026 年 6 月 7 日：https://weixin.qq.com/sph/ANwcSHDcpL |
 | `news-cover.jpg` | 首页“学术动态” | 成都中医药大学附属医院耳鼻喉科公众号：https://mp.weixin.qq.com/s/2O74yEwJq_a3FyxjHOzcRQ |
+| `wudu.jpg` | 学说页“鼻五度辨证”配图 | 本人 2026-11-04 提供（最初 demo 用图），本人说明来自公开渠道，具体链接未记录；图注已注明“图片来自公开渠道”，2026-11-06 本人决定上线，授权待确认 |
+| `anatomy.jpg` | 学说页“形神合一：鼻腔与情志”配图 | 同上 |

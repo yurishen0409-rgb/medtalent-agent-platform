@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -445,4 +445,13 @@ test('小程序内点视频号、公众号卡片改为复制链接', () => {
   assert.match(appSource, /function inMiniProgram\(\)[\s\S]*?miniProgram/);
   assert.match(appSource, /onClick=\{openInWechat\}/);
   assert.match(appSource, /链接已复制，请粘贴到微信聊天中点开/);
+});
+
+test('学说页配图已上线并注明来自公开渠道', () => {
+  const figures = Object.values(custom.serviceDetails).flatMap(item => item.figures ?? []);
+  assert.equal(figures.length, 2);
+  for (const figure of figures) {
+    assert.ok(existsSync(new URL(`../public${figure.src}`, import.meta.url)), figure.src);
+    assert.match(figure.caption, /图片来自公开渠道/);
+  }
 });

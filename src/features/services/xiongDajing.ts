@@ -70,10 +70,10 @@ export const xiongKnowledgeGroups: { title: string; description?: string; items:
     { title: "鼻五度辨证", panel: { kind: "degrees", cases: [
       { tag: "血度、髓度", disease: "失嗅", text: "文献认为嗅区与血度、髓度密切相关，嗅觉与心、肾关系较为密切；所载治法为补肾养心、升清润燥、通利鼻窍。" },
       { tag: "气度", disease: "鼻窒", text: "文献按气度（下鼻甲、下鼻道）论治；所载证型为肺气不足，治法为补肺益气、散邪通窍。" },
-    ] }, figures: [{ src: "", alt: "鼻腔矢状面图，标注血度、肉度、气度、枢度、髓度对应部位", caption: "五度与鼻腔部位对应图待提供" }], body: "气度：下鼻甲、下鼻道，肺\n枢度：中鼻甲、中鼻道，肝胆\n血度：鼻中隔，心\n肉度：鼻尖、鼻翼、鼻前庭，脾\n髓度：上鼻甲、鼻骨、鼻顶，肾", sources: [xiongSources.degrees, xiongSources.anosmia, xiongSources.nasalObstruction], promptNote: "写法差异：血度另有利特尔氏区；髓度 2014 年论文只写鼻顶；肉度 2014 年论文含外鼻。", question: xiongQuestions[0] },
+    ] }, figures: [{ src: "/assets/xiong/wudu.jpg", alt: "鼻腔矢状面图，标注血度、肉度、气度、枢度、髓度对应部位", caption: "五度与鼻腔部位对应图（图片来自公开渠道），点击查看大图" }], body: "气度：下鼻甲、下鼻道，肺\n枢度：中鼻甲、中鼻道，肝胆\n血度：鼻中隔，心\n肉度：鼻尖、鼻翼、鼻前庭，脾\n髓度：上鼻甲、鼻骨、鼻顶，肾", sources: [xiongSources.degrees, xiongSources.anosmia, xiongSources.nasalObstruction], promptNote: "写法差异：血度另有利特尔氏区；髓度 2014 年论文只写鼻顶；肉度 2014 年论文含外鼻。", question: xiongQuestions[0] },
     { title: "胆肺假说", body: "“胆主窦窍，肺主鼻窍”；胆肺同治。", sources: [xiongSources.hypothesis, xiongSources.treatment] },
     { title: "鼻全息论", body: "鼻窍包含脏腑信息，局部与整体含相同基本信息。", sources: [xiongSources.school, xiongSources.holography, xiongSources.lecture], promptNote: "公开讲座报道可查，稳定的完整回放未找到。" },
-    { title: "形神合一：鼻腔与情志", figures: [{ src: "", alt: "鼻腔鼻窦及咽喉解剖图，标注上鼻甲、中鼻甲、下鼻甲等", caption: "鼻腔解剖图待提供" }], body: "中鼻甲缩小、中鼻道宽大进而表现为鼻腔宽大，常伴肝郁不舒、情志郁怒、性格暴躁；下鼻甲缩小、下鼻道及总鼻道宽大，常表现为悲忧、情绪低落或暴躁。作者说明病例有限，未总结程度关系。", sources: [xiongSources.holography], note: "中国中医药报 2026-07-13 文章有“鼻腔宽大 2 度”的用法。不用于判断个人是否鼻腔宽大，也不用于判断个人情绪或心理问题。", question: xiongQuestions[1] },
+    { title: "形神合一：鼻腔与情志", figures: [{ src: "/assets/xiong/anatomy.jpg", alt: "鼻腔鼻窦及咽喉解剖图，标注上鼻甲、中鼻甲、下鼻甲等", caption: "鼻腔解剖图（图片来自公开渠道），点击查看大图" }], body: "中鼻甲缩小、中鼻道宽大进而表现为鼻腔宽大，常伴肝郁不舒、情志郁怒、性格暴躁；下鼻甲缩小、下鼻道及总鼻道宽大，常表现为悲忧、情绪低落或暴躁。作者说明病例有限，未总结程度关系。", sources: [xiongSources.holography], note: "中国中医药报 2026-07-13 文章有“鼻腔宽大 2 度”的用法。不用于判断个人是否鼻腔宽大，也不用于判断个人情绪或心理问题。", question: xiongQuestions[1] },
     { title: "辨治理论框架", body: "三方面核心内容：鼻五度辨证与情志；胆肺假说、调少阳枢机与情志；鼻腔宽大与情志。枢度与情志关联最紧密；提出“枢运转，清阳升，浊阴降，鼻窍通”。手术前后要关注情志状态。498 例鼻窦炎观察中 72.89% 属胆腑郁热证（文章转述）。", sources: [xiongSources.emotionFramework], question: xiongQuestions[5] },
   ] },
   { title: "理法", description: "本内容为文献记载之理法，不用于判断个人病情。", items: [
