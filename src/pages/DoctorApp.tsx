@@ -395,12 +395,34 @@ function XiongDoctorCard({ onAll }: { onAll?: () => void }) {
   </section>;
 }
 
+// 小程序 web-view 只能打开已配置的业务域名，视频号和公众号链接点了没反应，改为复制链接让用户到微信聊天里打开。
+function inMiniProgram() {
+  return /miniProgram/i.test(navigator.userAgent) || (window as Window & { __wxjs_environment?: string }).__wxjs_environment === "miniprogram";
+}
+
+async function copyText(text: string) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* 部分 WebView 不支持，改用旧方法 */ }
+  const field = document.createElement("textarea");
+  field.value = text; field.setAttribute("readonly", ""); field.style.position = "fixed"; field.style.opacity = "0";
+  document.body.appendChild(field); field.select();
+  const copied = document.execCommand("copy");
+  field.remove();
+  return copied;
+}
+
 function XiongLinkCard({ title, href, cover, label, source, isVideo }: { title: string; href: string; cover?: string; label: string; source: string; isVideo?: boolean }) {
+  const [copyNote, setCopyNote] = useState<"copied" | "manual" | null>(null);
+  const openInWechat = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!inMiniProgram()) return;
+    event.preventDefault();
+    void copyText(href).then(copied => setCopyNote(copied ? "copied" : "manual"));
+  };
   return <section className="tang-home-videos xiong-slots" aria-label={title}><h2>{title}</h2>
-    <a className="xiong-link-card" href={href} target="_blank" rel="noopener noreferrer">
+    <a className="xiong-link-card" href={href} target="_blank" rel="noopener noreferrer" onClick={openInWechat}>
       <span className={isVideo ? "xiong-link-cover is-video" : "xiong-link-cover"}>{cover ? <img src={cover} alt="" /> : <small className="xiong-cover-placeholder">封面待提供</small>}{isVideo && <i aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></i>}</span>
       <b>{label}</b><small>{source}{cover && " · 封面图片来自公开渠道"}</small>
     </a>
+    {copyNote && <p className="xiong-copy-note" role="status">{copyNote === "copied" ? `小程序内无法直接打开${isVideo ? "视频号" : "公众号文章"}，链接已复制，请粘贴到微信聊天中点开。` : "小程序内无法直接打开，请长按下方链接复制，粘贴到微信聊天中点开："}{copyNote === "manual" && <span>{href}</span>}</p>}
   </section>;
 }
 

@@ -440,3 +440,9 @@ test('熊老标题用字都在思源宋体子集里', async () => {
     for (const char of title.replaceAll(' ', '')) assert.ok(chars.includes(char), `子集缺字：${char}`);
   }
 });
+
+test('小程序内点视频号、公众号卡片改为复制链接', () => {
+  assert.match(appSource, /function inMiniProgram\(\)[\s\S]*?miniProgram/);
+  assert.match(appSource, /onClick=\{openInWechat\}/);
+  assert.match(appSource, /链接已复制，请粘贴到微信聊天中点开/);
+});
