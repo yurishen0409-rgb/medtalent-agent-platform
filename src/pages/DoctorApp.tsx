@@ -391,6 +391,7 @@ function XiongDoctorCard({ onAll }: { onAll?: () => void }) {
       {active === "学术成就" && <p>{xiongProfile.achievements}</p>}
       {active === "师承脉络" && <ul>{xiongProfile.lineage.map(line => <li key={line}>{line}</li>)}</ul>}
     </div>
+    <small className="xiong-photo-note">头像图片来自公开渠道</small>
   </section>;
 }
 
@@ -791,7 +792,7 @@ function HomePanel({
           </div>}
         </motion.div>
         <div className="journey-specialty-tags">
-          {(isXiong ? ["熊氏耳鼻喉科第五代传人", "国务院特贴专家"] : (tangBio ? tangBio.tags : doctor.topics.slice(0, 3))).map((topic) => <span key={topic}>{topic}</span>)}
+          {(isXiong ? ["熊氏耳鼻喉科第五代传人", "国务院特殊津贴专家"] : (tangBio ? tangBio.tags : doctor.topics.slice(0, 3))).map((topic) => <span key={topic}>{topic}</span>)}
         </div>
         {(unified || isXiong) && <div className="journey-tang-start">
           <button className="journey-primary-button" onClick={() => onAsk()}><ChatCircleDotsIcon size={20} weight="fill" /> {isXiong ? "入门问学" : "开始对话"} <CaretRightIcon size={18} /></button>

@@ -40,6 +40,7 @@ const pending = "待医生提供";
 
 export const doctorCustoms: Record<string, DoctorCustom> = {
   "xiong-dajing": {
+    introPhoto: "/assets/doctors/portraits/xiong-dajing.jpg",
     theme: { accent: "#2F5553", accentStrong: "#2F5553", accentRgb: "47, 85, 83", surface: "#FFFCF6", canvas: "#F6F1E7", ink: "#2B2A28" },
     servicesIntro: "鼻病与情志研究的理论渊源与辨治心法；方药内容为文献所载，请勿据此自行用药。",
     featureGroups: xiongKnowledgeGroups.map(({ items, ...group }) => ({ ...group, items: items.map(item => item.title) })),

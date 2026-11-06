@@ -45,7 +45,7 @@ test('Xiong is registered with six questions and no inherited clinical metadata 
   assert.deepEqual(doctor.articles, []);
   assert.deepEqual(custom.videos, []);
   assert.equal(custom.bio, undefined);
-  assert.equal(custom.introPhoto, undefined);
+  assert.equal(custom.introPhoto, '/assets/doctors/portraits/xiong-dajing.jpg');
   assert.deepEqual(enabledGroups(custom), xiongKnowledgeGroups.filter(group => !group.title.startsWith('传承发展')).map(({ items, ...group }) => ({ ...group, items: items.map(item => item.title) })));
   const chen = doctorProfiles.find(item => item.slug === 'chen-zhiling');
   assert.equal(doctor.name, '熊大经名中医传承智能体');
@@ -338,6 +338,7 @@ test('Xiong template home and chat use neutral wording, six questions and no ima
   const props = { doctor: { ...doctor, content: [] }, experience: compiled.exports.createGenericExperience(doctor), onAsk() {}, onManage() {}, onExpert() {} };
   const home = render('HomePanel', props);
   assert.match(home, /问学举隅/);
+  assert.match(home, /头像图片来自公开渠道/);
   assert.doesNotMatch(home, /封面待提供/);
   for (const cover of ['lecture-cover.jpg', 'news-cover.jpg']) assert.ok(home.includes(`/assets/xiong/${cover}`), cover);
   assert.equal(home.match(/封面图片来自公开渠道/g)?.length, 2);

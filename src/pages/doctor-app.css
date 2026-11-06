@@ -3585,3 +3585,4 @@
 .is-xiong .xiong-link-cover.is-video img { object-position: center top; }
 .is-xiong .xiong-link-cover i { left: auto; top: auto; right: 10px; bottom: 10px; width: 44px; height: 44px; transform: none; }
 .is-xiong .xiong-link-cover i svg { display: block; width: 20px; height: 20px; fill: #FFFCF6; color: #FFFCF6; }
+.is-xiong .xiong-photo-note { display: block; margin-top: 10px; font-size: 12px; line-height: 1.5; color: #595752; }
