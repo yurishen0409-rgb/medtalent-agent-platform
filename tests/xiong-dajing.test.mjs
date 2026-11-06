@@ -339,7 +339,7 @@ test('Xiong template home and chat use neutral wording, six questions and no ima
   const home = render('HomePanel', props);
   assert.match(home, /问学举隅/);
   assert.doesNotMatch(home, /封面待提供/);
-  for (const cover of ['lecture-cover.jpg', 'news-cover.svg']) assert.ok(home.includes(`/assets/xiong/${cover}`), cover);
+  for (const cover of ['lecture-cover.jpg', 'news-cover.jpg']) assert.ok(home.includes(`/assets/xiong/${cover}`), cover);
   assert.match(home, /入门问学/);
   for (const text of ['名医大德', '名家讲堂', '学术动态']) assert.match(home, new RegExp(text));
   assert.doesNotMatch(home, /待确认|WEEKLY FOCUS|PERSONAL HEALTH|本周大家最关心|进入智能问答，进一步了解相关信息/);

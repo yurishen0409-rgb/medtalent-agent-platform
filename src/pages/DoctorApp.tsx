@@ -802,7 +802,7 @@ function HomePanel({
       {isXiong && <>
         <XiongDoctorCard onAll={onExpert} />
         <XiongLinkCard title="名家讲堂" href="https://weixin.qq.com/sph/ANwcSHDcpL" cover="/assets/xiong/lecture-cover.jpg" label="小鼻子大健康：日常护鼻注意哪些" source="CCTV4《健康中国》· 视频号 · 2026年6月7日" isVideo />
-        <XiongLinkCard title="学术动态" href="https://mp.weixin.qq.com/s/2O74yEwJq_a3FyxjHOzcRQ" cover="/assets/xiong/news-cover.svg" label="守正创新 薪火相传：全国名中医熊大经教授学术经验继承学习班在蓉举行" source="成都中医药大学附属医院耳鼻喉科 · 公众号" />
+        <XiongLinkCard title="学术动态" href="https://mp.weixin.qq.com/s/2O74yEwJq_a3FyxjHOzcRQ" cover="/assets/xiong/news-cover.jpg" label="守正创新 薪火相传：全国名中医熊大经教授学术经验继承学习班在蓉举行" source="成都中医药大学附属医院耳鼻喉科 · 公众号" />
       </>}
 
       {unified && <>
