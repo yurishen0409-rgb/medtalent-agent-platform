@@ -5,6 +5,7 @@ import { usesTangRecords } from '../src/lib/builderRuntime.ts';
 import { doctorCustoms, enabledGroups, usesUnifiedTemplate } from '../src/features/services/doctorCustom.ts';
 import { doctorProfiles } from '../src/data/doctorProfiles.ts';
 import { doctorExperiences } from '../src/data/doctorExperience.ts';
+import { chenArticleDetails, chenCatalogArticles } from '../src/features/services/chenEducation.ts';
 import * as core from '../server/chat-core.mjs';
 import * as unified from '../server/chat-core.mjs';
 
@@ -328,4 +329,14 @@ test('Chen education bodies stay free of doses and every article has a named sou
 test('Chen bio shows nothing marked unconfirmed', () => {
   assert.doesNotMatch(JSON.stringify(doctorCustoms[chen.slug].bio), /待确认|待医生/);
   assert.deepEqual(doctorCustoms[chen.slug].expertSections, []);
+});
+
+test('Chen home articles follow the code catalog instead of stale published rows', () => {
+  const published = { ...chen, articles: [{ id: 'czl-3', title: '鼻腔冲洗做对了吗？', summary: '旧摘要', tag: '鼻炎', readTime: '4 分钟' }] };
+  const view = chenCatalogArticles(published);
+  assert.deepEqual(view.articles, chen.articles);
+  assert.ok(view.articles.slice(0, 3).every(article => chenArticleDetails[article.id]));
+  assert.equal(published.articles[0].id, 'czl-3');
+  assert.equal(chenCatalogArticles({ ...published, builder: {} }).articles, published.articles);
+  assert.equal(chenCatalogArticles(tang), tang);
 });
