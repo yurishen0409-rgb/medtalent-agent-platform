@@ -1,7 +1,7 @@
 /** Account-scoped, revision-checked cloud documents. Guest data is never read here. */
 export const consumerSections = [
   'privacy', 'chat-messages', 'favorites', 'health-records', 'health-daily-tasks',
-  'profile-name', 'voice-input-hint-dismissed', 'chat-assessments-v1', 'wellness-v1', 'service-plans-v1', 'builder-assessments-v1',
+  'profile-name', 'voice-input-hint-dismissed', 'chat-assessments-v1', 'wellness-v1', 'service-plans-v1', 'builder-assessments-v1', 'xiong-intake-v1',
 ] as const;
 export type ConsumerSection = typeof consumerSections[number];
 export type ConsumerDataStatus = 'idle' | 'loading' | 'synced' | 'pending' | 'saving' | 'offline' | 'conflict' | 'error';

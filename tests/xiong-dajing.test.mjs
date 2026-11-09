@@ -85,7 +85,7 @@ test('shared navigation keeps Chen labels and icons and uses off for unavailable
   const items = compiled.exports.navItems;
   const navigation = configuredNavigation(doctor, items);
   assert.deepEqual(navigation, items.filter(item => ['home', 'ask', 'services'].includes(item.id)));
-  assert.deepEqual(compiled.exports.doctorNavigation(doctor).map(item => item.label), ['首页', '问学', '学说']);
+  assert.deepEqual(compiled.exports.doctorNavigation(doctor).map(item => item.label), ['首页', '问学', '健康问答', '量表测试', '学说']);
   for (const tab of ['manage', 'me']) {
     const saved = resolveDoctorEntryTab('/d/xiong-dajing', doctor.slug, () => tab);
     assert.equal(navigation.some(item => item.id === saved), false);
@@ -340,7 +340,7 @@ test('Xiong template home and chat use neutral wording, six questions and no ima
   assert.match(home, /问学举隅/);
   assert.match(home, /头像图片来自公开渠道/);
   assert.doesNotMatch(home, /封面待提供/);
-  for (const cover of ['lecture-cover.jpg', 'news-cover.jpg']) assert.ok(home.includes(`/assets/xiong/${cover}`), cover);
+  for (const cover of ['lecture-cover.jpg', 'hangzhou-cover.jpg']) assert.ok(home.includes(`/assets/xiong/${cover}`), cover);
   assert.equal(home.match(/封面图片来自公开渠道/g)?.length, 2);
   assert.match(home, /入门问学/);
   for (const text of ['名医大德', '名家讲堂', '学术动态']) assert.match(home, new RegExp(text));
@@ -443,7 +443,7 @@ test('熊老标题用字都在思源宋体子集里', async () => {
 
 test('小程序内点视频号、公众号卡片改为复制链接', () => {
   assert.match(appSource, /function inMiniProgram\(\)[\s\S]*?miniProgram/);
-  assert.match(appSource, /onClick=\{openInWechat\}/);
+  assert.match(appSource, /onClick=\{openInWechat\(href\)\}/);
   assert.match(appSource, /链接已复制，请粘贴到微信聊天中点开/);
 });
 

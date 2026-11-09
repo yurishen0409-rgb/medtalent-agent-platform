@@ -3588,3 +3588,6 @@
 .is-xiong .xiong-photo-note { display: block; margin-top: 10px; font-size: 12px; line-height: 1.5; color: #595752; }
 .is-xiong .xiong-copy-note { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: #595752; }
 .is-xiong .xiong-copy-note span { display: block; margin-top: 4px; word-break: break-all; user-select: text; -webkit-user-select: text; color: #2B2A28; }
+.is-xiong .xiong-slot-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.is-xiong .xiong-slot-head h2 { margin: 0; }
+.is-xiong .xiong-slot-head button { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; border: 0; background: none; font-size: 14px; color: #2F5553; }

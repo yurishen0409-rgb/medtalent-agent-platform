@@ -5,7 +5,7 @@ import { getConsumerSession, loginWithWechat, logoutConsumer, refreshConsumerSes
 import { getDoctorVisitorId } from '../../hooks/useDoctorLocalState';
 import './consumer-account.css';
 
-const sections = ['privacy', 'chat-messages', 'favorites', 'health-records', 'health-daily-tasks', 'profile-name', 'voice-input-hint-dismissed', 'chat-assessments-v1', 'wellness-v1', 'service-plans-v1', 'builder-assessments-v1'] as const;
+const sections = ['privacy', 'chat-messages', 'favorites', 'health-records', 'health-daily-tasks', 'profile-name', 'voice-input-hint-dismissed', 'chat-assessments-v1', 'wellness-v1', 'service-plans-v1', 'builder-assessments-v1', 'xiong-intake-v1'] as const;
 
 export function ConsumerDataBoundary({ doctorSlug, children }: { doctorSlug: string; children: ReactNode }) {
   const session = useConsumerSession();
@@ -123,7 +123,7 @@ export function ConsumerAccountCard({ doctorSlug }: { doctorSlug: string }) {
       {importAvailable && <button disabled={pending} onClick={() => void run(importRecords)}>迁移本机记录</button>}
       <button disabled={pending} onClick={() => void run(async () => { await consumerDataStore.flush(); if (sections.some(section => ['pending', 'saving', 'offline', 'error', 'conflict'].includes(consumerDataStore.get(doctorSlug, section, null).status)) && !window.confirm('尚有未同步记录；设备无法保存缓存时，退出或关闭页面可能丢失这些修改。建议联网完成同步后再退出。仍要退出吗？')) return; await logoutConsumer(); })}>退出登录</button>
     </div>}
-    {conflicts.map(item => <div className="consumer-conflict" key={item.section}><span>记录冲突（{({ 'chat-messages': '对话', 'health-records': '健康记录', 'chat-assessments-v1': doctorSlug === 'chen-zhiling' ? '自评记录' : '心理自评', favorites: '收藏', 'wellness-v1': '身心记录', 'service-plans-v1': '服务计划', 'builder-assessments-v1': '健康自评' } as Record<string, string>)[item.section] || '个人设置'}）</span><button onClick={() => { if (window.confirm('使用云端版本将放弃当前设备尚未同步的这项修改，确定继续吗？')) void run(() => consumerDataStore.resolveConflict(doctorSlug, item.section, 'cloud')); }}>使用云端版本</button><button onClick={() => { if (window.confirm('使用本机版本将替换云端这项记录，确定继续吗？')) void run(() => consumerDataStore.resolveConflict(doctorSlug, item.section, 'local')); }}>保留本机版本</button></div>)}
+    {conflicts.map(item => <div className="consumer-conflict" key={item.section}><span>记录冲突（{({ 'chat-messages': '对话', 'health-records': '健康记录', 'chat-assessments-v1': doctorSlug === 'chen-zhiling' ? '自评记录' : '心理自评', favorites: '收藏', 'wellness-v1': '身心记录', 'service-plans-v1': '服务计划', 'builder-assessments-v1': '健康自评', 'xiong-intake-v1': '鼻病与情志记录' } as Record<string, string>)[item.section] || '个人设置'}）</span><button onClick={() => { if (window.confirm('使用云端版本将放弃当前设备尚未同步的这项修改，确定继续吗？')) void run(() => consumerDataStore.resolveConflict(doctorSlug, item.section, 'cloud')); }}>使用云端版本</button><button onClick={() => { if (window.confirm('使用本机版本将替换云端这项记录，确定继续吗？')) void run(() => consumerDataStore.resolveConflict(doctorSlug, item.section, 'local')); }}>保留本机版本</button></div>)}
     {(notice || session.error) && <p role="status">{notice || session.error}</p>}
     {session.user && [...new Set(snapshots.map(item => item.error).filter(Boolean))].map(error => <p role="status" key={error}>{error}</p>)}
     {!session.user && <small>请在 Medtalent 微信小程序内登录。本机游客记录由你选择是否迁移。</small>}

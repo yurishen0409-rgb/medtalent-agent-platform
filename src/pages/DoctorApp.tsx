@@ -123,6 +123,7 @@ import ConsumerReportsPanel from "../features/services/ConsumerReportsPanel";
 import ConsumerServicesPanel from "../features/services/ConsumerServicesPanel";
 import ServicePlanWorksheet from "../features/services/ServicePlanWorksheet";
 import TangFeatureGrid from "../features/services/TangFeatureGrid";
+import { XiongIntakePanel, XiongLecturePage, XiongScalePanel } from "../features/xiong-home/XiongWorkspace";
 import type { DoctorCustom } from "../features/services/doctorCustom";
 import TangDoctorBio, { TangDoctorCard } from "../features/tang-home/TangDoctorBio";
 import { DoctorVideoItem, EducationArticle, SpecialtyVisitSummary, TangEducationPanel, TangVisitSummary, TangClinicPanel, TangFamilyPanel, TangMessagePanel, TangMorePanel, TangRelaxPanel, TangMedicationPanel, TangSmokingPanel } from "../features/tang-home/TangServicePanels";
@@ -180,8 +181,18 @@ const navItems: { id: Tab; label: string; icon: Icon }[] = [
   { id: "me", label: "我的", icon: UserCircleIcon },
 ];
 
+// 熊老底部导航固定为首页、问学、健康问答、量表测试、学说（2026-11-09 本人定）。
+const xiongNavItems: { id: Tab; label: string; icon: Icon }[] = [
+  { id: "home", label: "首页", icon: HouseIcon },
+  { id: "ask", label: "问学", icon: ChatCircleDotsIcon },
+  { id: "manage", label: "健康问答", icon: ClipboardTextIcon },
+  { id: "me", label: "量表测试", icon: ChartLineUpIcon },
+  { id: "services", label: "学说", icon: SquaresFourIcon },
+];
+
 // 只为熊老替换标签和图标，沿用统一模板的布局及导航。
 function doctorNavigation(doctor: DoctorProfile) {
+  if (doctor.slug === "xiong-dajing" && !doctor.builder) return xiongNavItems;
   return configuredNavigation(doctor, navItems).map(item => doctor.slug === "xiong-dajing" && item.id === "ask" ? { ...item, label: "问学" } : doctor.slug === "xiong-dajing" && item.id === "services" ? { ...item, label: "学说" } : item);
 }
 const xiongServiceIcons: Record<string, Icon> = {
@@ -379,7 +390,8 @@ function XiongDoctrine({ groups, render }: { groups: DoctorCustom["featureGroups
   </>;
 }
 
-const xiongCardTabs = ["简介", "学术成就", "师承脉络"] as const;
+// 师承脉络先不放首页（2026-11-09 本人定），全部介绍里仍有。
+const xiongCardTabs = ["简介", "学术成就"] as const;
 
 function XiongDoctorCard({ onAll }: { onAll?: () => void }) {
   const [active, setActive] = useState<typeof xiongCardTabs[number]>("简介");
@@ -389,7 +401,6 @@ function XiongDoctorCard({ onAll }: { onAll?: () => void }) {
     <div className="tang-card-panel" role="tabpanel" aria-label={active}>
       {active === "简介" && <p>{xiongProfile.intro}</p>}
       {active === "学术成就" && <p>{xiongProfile.achievements}</p>}
-      {active === "师承脉络" && <ul>{xiongProfile.lineage.map(line => <li key={line}>{line}</li>)}</ul>}
     </div>
     <small className="xiong-photo-note">头像图片来自公开渠道</small>
   </section>;
@@ -410,20 +421,31 @@ async function copyText(text: string) {
   return copied;
 }
 
-function XiongLinkCard({ title, href, cover, label, source, isVideo }: { title: string; href: string; cover?: string; label: string; source: string; isVideo?: boolean }) {
-  const [copyNote, setCopyNote] = useState<"copied" | "manual" | null>(null);
-  const openInWechat = (event: React.MouseEvent<HTMLAnchorElement>) => {
+function useWechatLinkCopy() {
+  const [copyNote, setCopyNote] = useState<{ href: string; copied: boolean } | null>(null);
+  const openInWechat = (href: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!inMiniProgram()) return;
     event.preventDefault();
-    void copyText(href).then(copied => setCopyNote(copied ? "copied" : "manual"));
+    void copyText(href).then(copied => setCopyNote({ href, copied }));
   };
-  return <section className="tang-home-videos xiong-slots" aria-label={title}><h2>{title}</h2>
-    <a className="xiong-link-card" href={href} target="_blank" rel="noopener noreferrer" onClick={openInWechat}>
+  const note = copyNote && <p className="xiong-copy-note" role="status">{copyNote.copied ? "小程序内无法直接打开，链接已复制，请粘贴到微信聊天中点开。" : "小程序内无法直接打开，请长按下方链接复制，粘贴到微信聊天中点开："}{!copyNote.copied && <span>{copyNote.href}</span>}</p>;
+  return { openInWechat, note };
+}
+
+function XiongLinkCard({ title, href, cover, label, source, isVideo, onAll }: { title: string; href: string; cover?: string; label: string; source: string; isVideo?: boolean; onAll?: () => void }) {
+  const { openInWechat, note } = useWechatLinkCopy();
+  return <section className="tang-home-videos xiong-slots" aria-label={title}>{onAll ? <header className="xiong-slot-head"><h2>{title}</h2><button type="button" onClick={onAll}>全部视频<CaretRightIcon size={14} /></button></header> : <h2>{title}</h2>}
+    <a className="xiong-link-card" href={href} target="_blank" rel="noopener noreferrer" onClick={openInWechat(href)}>
       <span className={isVideo ? "xiong-link-cover is-video" : "xiong-link-cover"}>{cover ? <img src={cover} alt="" /> : <small className="xiong-cover-placeholder">封面待提供</small>}{isVideo && <i aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></i>}</span>
       <b>{label}</b><small>{source}{cover && " · 封面图片来自公开渠道"}</small>
     </a>
-    {copyNote && <p className="xiong-copy-note" role="status">{copyNote === "copied" ? `小程序内无法直接打开${isVideo ? "视频号" : "公众号文章"}，链接已复制，请粘贴到微信聊天中点开。` : "小程序内无法直接打开，请长按下方链接复制，粘贴到微信聊天中点开："}{copyNote === "manual" && <span>{href}</span>}</p>}
+    {note}
   </section>;
+}
+
+function XiongLectureSheet({ onAsk }: { onAsk: (question: string) => void }) {
+  const { openInWechat, note } = useWechatLinkCopy();
+  return <>{note}<XiongLecturePage onAsk={onAsk} onOpen={(lecture, event) => lecture.href && openInWechat(lecture.href)(event)} /></>;
 }
 
 function XiongProfileSheet() {
@@ -824,8 +846,8 @@ function HomePanel({
 
       {isXiong && <>
         <XiongDoctorCard onAll={onExpert} />
-        <XiongLinkCard title="名家讲堂" href="https://weixin.qq.com/sph/ANwcSHDcpL" cover="/assets/xiong/lecture-cover.jpg" label="小鼻子大健康：日常护鼻注意哪些" source="CCTV4《健康中国》· 视频号 · 2026年6月7日" isVideo />
-        <XiongLinkCard title="学术动态" href="https://mp.weixin.qq.com/s/2O74yEwJq_a3FyxjHOzcRQ" cover="/assets/xiong/news-cover.jpg" label="守正创新 薪火相传：全国名中医熊大经教授学术经验继承学习班在蓉举行" source="成都中医药大学附属医院耳鼻喉科 · 公众号" />
+        <XiongLinkCard onAll={() => onTheoryItem?.("名家讲堂")} title="名家讲堂" href="https://weixin.qq.com/sph/ANwcSHDcpL" cover="/assets/xiong/lecture-cover.jpg" label="小鼻子大健康：日常护鼻注意哪些" source="CCTV4《健康中国》· 视频号 · 2026年6月7日" isVideo />
+        <XiongLinkCard title="学术动态" href="https://www.cnfin.com/cq-lb/detail/20251103/4328016_1.html" cover="/assets/xiong/hangzhou-cover.jpg" label="熊大经全国名中医传承工作站落户杭州市中医院，同步举办“熊大经中医鼻科理论传承与创新学习班”" source="新华财经 · 2025年11月3日" />
       </>}
 
       {unified && <>
@@ -2556,7 +2578,7 @@ function DoctorAppBody() {
   }
 
   const switchTab = (nextTab: Tab) => {
-    if (!configuredNavigation(doctor, navItems).some(item => item.id === nextTab)) return;
+    if (!doctorNavigation(doctor).some(item => item.id === nextTab)) return;
     setWellnessView(null);
     setTab(nextTab);
     // Save the explicit choice before changing the URL so leaving /ask cannot restore the old tab.
@@ -2598,6 +2620,7 @@ function DoctorAppBody() {
   const educationEmpty = unified && !tang && !doctor.articles.length && !custom?.videos.length
     && !doctor.content.some(item => item.type === "article" || item.type === "faq");
   const availableNavigation = doctorNavigation(doctor);
+  const xiongPage = doctor.slug === "xiong-dajing" && !doctor.builder;
   const visibleTab = availableNavigation.some(item => item.id === tab) ? tab : (availableNavigation[0]?.id || "me");
   const themeStyle = {
     "--journey-accent": experience.theme.accent,
@@ -2635,9 +2658,9 @@ function DoctorAppBody() {
                 }, 100);
               }} onTheoryItem={openTang} />}
               {visibleTab === "ask" && <AskPanel key={doctor.slug} doctor={doctor} experience={experience} initialQuestion={initialQuestion} initialShareHealthRecords={initialShareHealthRecords} initialAutoSend={initialAutoSend} onConsumeInitialQuestion={() => { setInitialQuestion(""); setInitialShareHealthRecords(false); }} />}
-              {visibleTab === "manage" && (usesWellness(doctor) && !doctor.builder ? <WellnessWorkspace section="manage" view={wellnessView} onView={setWellnessView} onAsk={goAsk} /> : <ManagePanel doctor={doctor} experience={experience} onAsk={goAsk} onPrepare={unified ? () => setTangPanel("就诊准备") : undefined} wellnessView={wellnessView} onWellnessView={setWellnessView} />)}
+              {visibleTab === "manage" && xiongPage ? <XiongIntakePanel slug={doctor.slug} onAsk={goAsk} /> : visibleTab === "manage" && (usesWellness(doctor) && !doctor.builder ? <WellnessWorkspace section="manage" view={wellnessView} onView={setWellnessView} onAsk={goAsk} /> : <ManagePanel doctor={doctor} experience={experience} onAsk={goAsk} onPrepare={unified ? () => setTangPanel("就诊准备") : undefined} wellnessView={wellnessView} onWellnessView={setWellnessView} />)}
               {visibleTab === "services" && (usesWellness(doctor) ? <WellnessWorkspace section="services" view={wellnessView} onView={setWellnessView} onAsk={goAsk} servicePlans={componentEnabled(doctor, "services") && <ServicesPanel compact doctor={doctor} experience={experience} onAsk={goAsk} onManage={() => openWellness('diary')} />} /> : <ServicesPanel doctor={doctor} experience={experience} onAsk={goAsk} onManage={() => switchTab("manage")} onTangAction={custom ? openTang : undefined} />)}
-              {visibleTab === "me" && <MePanel doctor={doctor} experience={experience} onAsk={goAsk} onWellnessOpen={openWellness} onManage={() => switchTab("manage")} />}
+              {visibleTab === "me" && xiongPage ? <XiongScalePanel slug={doctor.slug} onAsk={goAsk} /> : visibleTab === "me" && <MePanel doctor={doctor} experience={experience} onAsk={goAsk} onWellnessOpen={openWellness} onManage={() => switchTab("manage")} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -2654,7 +2677,7 @@ function DoctorAppBody() {
           })}
         </nav>}
         {custom && tangPanel && <FeatureSheet title={tangPanel === "专家介绍" && doctor.slug === "xiong-dajing" ? "医家小传" : tangPanel === "专家介绍" && custom.bio ? `${doctor.name}专家介绍` : tangPanel} eyebrow="" onClose={closeTangPanel}>
-          {tangPanel === "专家介绍" && doctor.slug === "xiong-dajing" ? <XiongProfileSheet /> : tangPanel === "专家介绍" ? custom.bio ? <div className="tang-expert-sheet"><TangDoctorBio bio={custom.bio} pendingSections={custom.expertSections} onClose={closeTangPanel} /></div> : <div className="tang-expert-sheet"><p>{doctor.hospital}</p><p>{doctor.slug === "xiong-dajing" ? doctor.title : `${doctor.department} · ${doctor.title}`}</p><h3>专业擅长</h3><p>{doctor.specialty}</p>{custom.expertSections.map(section => <section key={section.title}><h3>{section.title}</h3><p>{section.body}</p></section>)}</div>
+          {tangPanel === "专家介绍" && doctor.slug === "xiong-dajing" ? <XiongProfileSheet /> : tangPanel === "名家讲堂" && doctor.slug === "xiong-dajing" ? <XiongLectureSheet onAsk={question => { setTangPanel(null); goAsk(question); }} /> : tangPanel === "专家介绍" ? custom.bio ? <div className="tang-expert-sheet"><TangDoctorBio bio={custom.bio} pendingSections={custom.expertSections} onClose={closeTangPanel} /></div> : <div className="tang-expert-sheet"><p>{doctor.hospital}</p><p>{doctor.slug === "xiong-dajing" ? doctor.title : `${doctor.department} · ${doctor.title}`}</p><h3>专业擅长</h3><p>{doctor.specialty}</p>{custom.expertSections.map(section => <section key={section.title}><h3>{section.title}</h3><p>{section.body}</p></section>)}</div>
             : custom.serviceDetails?.[tangPanel] ? <PublishedContentDetail key={tangPanel} research={doctor.slug === "xiong-dajing"} onOpenRelated={setTangPanel} content={custom.serviceDetails[tangPanel]} onAsk={question => { setTangPanel(null); goAsk(question); }} />
             : tang && (tangPanel === "量表自评" || tangPanel === "今日心境") ? <TangChatGuidance key={tangPanel} embedded onOpenClinic={() => setTangPanel("门诊指引")} startWithScales={tangPanel === "量表自评"} disabled={templatePreview} onSend={async text => { setTangPanel(null); goAsk(text, false, true); return true; }} />
             : tangPanel === "科普宣教" || tangPanel === "健康宣教" ? educationEmpty ? <p className="tang-svc-note">内容待医生提供</p> : unified ? <TangEducationPanel videos={custom.videos}><><PublishedContentSection content={doctor.content.filter(item => item.type === "article" || item.type === "faq")} onAsk={question => { setTangPanel(null); goAsk(question); }} title={tangPanel} /><div className="tang-svc tang-svc-edu">{doctor.articles.map(article => custom.articleDetails?.[article.id] ? <EducationArticle key={article.id} article={article} detail={custom.articleDetails[article.id]} onAsk={question => { setTangPanel(null); goAsk(question, false, true); }} /> : <button type="button" className="tang-svc-box" key={article.id} onClick={() => { setTangPanel(null); goAsk(article.title, false, true); }}><b>{article.title}</b><small>{article.summary}</small></button>)}</div></></TangEducationPanel> : <><PublishedContentSection content={doctor.content.filter(item => item.type === "article" || item.type === "faq")} onAsk={question => { setTangPanel(null); goAsk(question); }} title={tangPanel} /><div className="tang-svc tang-svc-edu">{doctor.articles.map(article => <button type="button" className="tang-svc-box" key={article.id} onClick={() => { setTangPanel(null); goAsk(article.title, false, true); }}><b>{article.title}</b><small>{article.summary}</small></button>)}</div></>

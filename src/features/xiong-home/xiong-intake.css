@@ -1,0 +1,65 @@
+/* 熊老健康问答、量表测试、名家讲堂；配色沿用 .is-xiong 的米色与墨绿 */
+.xiong-workspace { display: grid; gap: 14px; padding: 18px 16px 28px; color: #2B2A28; }
+.xiong-ws-head h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
+.xiong-ws-head p { margin: 0; font-size: 13px; line-height: 1.7; color: #595752; }
+.xiong-ws-card { padding: 14px; border: 1px solid #D9D2C5; border-radius: 6px; background: #FFFCF6; }
+.xiong-ws-card h3, .xiong-ws-card > summary { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+.xiong-doctor-part > summary { margin: 0; cursor: pointer; }
+.xiong-doctor-part[open] > summary { margin-bottom: 10px; }
+.xiong-fields { display: grid; gap: 10px; }
+.xiong-fields label, .xiong-history, .xiong-turbinate label { display: grid; gap: 6px; font-size: 13px; color: #595752; }
+.xiong-fields input, .xiong-history textarea, .xiong-turbinate select, .xiong-scale-item select {
+  width: 100%; min-height: 40px; box-sizing: border-box; padding: 8px 10px; border: 1px solid #D9D2C5; border-radius: 4px;
+  background: #fff; font: inherit; font-size: 15px; color: #2B2A28;
+}
+.xiong-history textarea { resize: vertical; line-height: 1.6; }
+.xiong-chip-group + .xiong-chip-group { margin-top: 12px; }
+.xiong-chip-group h4 { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: #2F5553; }
+.xiong-chips, .xiong-choice { display: flex; flex-wrap: wrap; gap: 6px; }
+.xiong-chips button, .xiong-choice button {
+  min-height: 34px; padding: 5px 10px; border: 1px solid #D9D2C5; border-radius: 4px; background: #fff;
+  font-size: 13px; line-height: 1.4; color: #2B2A28; text-align: left;
+}
+.xiong-chips button.is-on, .xiong-choice button.is-on { border-color: #2F5553; background: #2F5553; color: #FFFCF6; }
+.xiong-history { margin-top: 12px; }
+.xiong-turbinate { display: grid; gap: 10px; margin-bottom: 12px; }
+.xiong-turbinate p { margin: 0; font-size: 13px; color: #2F5553; }
+.xiong-alert { margin-top: 12px; padding: 10px 12px; border-left: 3px solid #A33A2B; background: #FBEDEA; }
+.xiong-alert p { margin: 0; font-size: 14px; line-height: 1.6; color: #7A2318; }
+.xiong-alert p + p { margin-top: 6px; }
+.xiong-consent { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.6; color: #595752; }
+.xiong-consent input { margin-top: 3px; flex: none; }
+.xiong-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.xiong-actions .journey-primary-button { min-height: 46px; }
+.xiong-actions > button:not(.journey-primary-button), .xiong-list-head button, .xiong-entry-actions button {
+  min-height: 40px; padding: 0 14px; border: 1px solid #2F5553; border-radius: 4px; background: #FFFCF6; font-size: 14px; color: #2F5553;
+}
+.xiong-actions button:disabled { opacity: .5; }
+.xiong-notice, .xiong-privacy, .xiong-empty { margin: 0; font-size: 12px; line-height: 1.6; color: #595752; }
+.xiong-notice { color: #2F5553; }
+.xiong-list-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.xiong-list-head h3 { margin: 0; }
+.xiong-entry { padding: 10px 0; border-top: 1px solid #ECE6DA; }
+.xiong-entry b { display: block; font-size: 14px; }
+.xiong-entry small { display: block; margin-top: 2px; font-size: 12px; color: #595752; }
+.xiong-entry p { margin: 6px 0 8px; white-space: pre-line; font-size: 13px; line-height: 1.6; }
+.xiong-entry-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.xiong-entry-actions .danger { border-color: #A33A2B; color: #A33A2B; }
+.xiong-scale-list { display: grid; gap: 8px; }
+.xiong-scale-list button { display: grid; gap: 4px; padding: 14px; border: 1px solid #D9D2C5; border-radius: 6px; background: #FFFCF6; text-align: left; }
+.xiong-scale-list b { font-size: 16px; color: #2F5553; }
+.xiong-scale-list small { font-size: 13px; color: #595752; }
+.xiong-scale-form { display: grid; gap: 12px; }
+.xiong-scale-item { margin: 0; padding: 12px; border: 1px solid #D9D2C5; border-radius: 6px; background: #FFFCF6; }
+.xiong-scale-item legend { float: left; width: 100%; margin-bottom: 8px; padding: 0; font-size: 15px; line-height: 1.5; }
+.xiong-scale-item .xiong-choice { clear: both; }
+.xiong-result p { margin: 0 0 4px; font-size: 14px; line-height: 1.6; }
+.xiong-lectures { display: grid; gap: 16px; }
+.xiong-lectures h3 { margin: 0 0 8px; font-size: 16px; }
+.xiong-lecture { display: grid; gap: 6px; padding-bottom: 12px; }
+.xiong-lecture a { display: grid; gap: 8px; color: #2B2A28; text-decoration: none; }
+.xiong-lecture img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; }
+.xiong-lecture b { font-size: 15px; line-height: 1.45; }
+.xiong-lecture small { font-size: 12px; line-height: 1.5; color: #595752; }
+.xiong-lecture-pending { display: grid; gap: 8px; }
+.xiong-lecture-pending span { display: grid; place-items: center; aspect-ratio: 16 / 9; border: 1px dashed #D9D2C5; border-radius: 4px; background: #F4EFE5; font-size: 13px; color: #595752; }
