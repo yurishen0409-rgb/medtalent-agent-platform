@@ -1,5 +1,5 @@
 // 熊老“鼻腔宽大与情志”数据库的自填表单与量表。
-// 字段来源：陈志凌主任提供的《鼻腔宽大与情志关系 CRF 表》、中医问诊模版截图（2026-11-03）、
+// 字段来源：陈志凌主任提供的《鼻腔宽大与情志关系 CRF 表》、中医问诊模版截图（2026-11-06）、
 // 《熊大经鼻腔宽大与情志数据库初版需求说明》（PHQ-2 + GAD-2 快速筛查，≥3 分进一步评估）。
 // 均未经医生审核；不收集姓名、电话、住址，研究编号由页面生成。
 
@@ -71,7 +71,7 @@ export type XiongScale = { id: XiongScaleId; title: string; subtitle: string; du
 const FREQUENCY = ["根本没有", "有几天", "一半以上的时间", "几乎每天"] as const;
 const SCREEN: XiongScale = {
   id: "screen", title: "情志快速筛查 PHQ-2 + GAD-2", subtitle: "回顾近两周，4 道题", duration: "约 1 分钟",
-  source: "需求说明：二问法 PHQ-2 + GAD-2，任一得分 ≥3 分再做进一步评估",
+  source: "PHQ-2 + GAD-2，任一得分 ≥3 分再做进一步评估",
   items: [
     { text: "做事没有兴趣或愉悦感", options: FREQUENCY, group: "PHQ-2" },
     { text: "感觉低落、郁闷或没有希望", options: FREQUENCY, group: "PHQ-2" },
@@ -103,7 +103,7 @@ const SCL_ITEMS = [
 ];
 const SCL90: XiongScale = {
   id: "scl90", title: "症状自评量表 SCL-90", subtitle: "根据现在或最近一星期的感觉，90 道题", duration: "约 15 分钟",
-  source: "CRF 表第三部分；每题 1–5 分",
+  source: "每题 1–5 分",
   items: SCL_ITEMS.map(text => ({ text, options: SCL_OPTIONS, values: [1, 2, 3, 4, 5] })),
 };
 // SCL-90 常用的 9 个因子及“其他”，题号从 1 开始。
@@ -126,7 +126,8 @@ export const RQLQ_ACTIVITIES = ["骑自行车", "阅读", "购物", "做家庭�
 const rqlq = (group: string, texts: string[]) => texts.map(text => ({ text, options: RQLQ_OPTIONS, group }));
 const RQLQ: XiongScale = {
   id: "rqlq", title: "鼻结膜炎生存质量问卷", subtitle: "诊断过变应性鼻炎者填写，回顾过去 7 天", duration: "约 5 分钟",
-  source: "CRF 表第四部分；每题 0–6 分，“未做活动”不计分。原表第 24 题重复写成“眼痛”，这里按眼肿记录，待陈主任确认",
+  // 原表第 24 题重复写成“眼痛”，这里按眼肿记录，待陈主任确认。
+  source: "每题 0–6 分，“未做活动”不计分",
   items: [
     ...[1, 2, 3].map(index => ({ text: `受限活动 ${index}`, options: RQLQ_ACTIVITY_OPTIONS, values: [0, 1, 2, 3, 4, 5, 6, 9], group: "活动" })),
     ...rqlq("睡眠", ["入睡困难", "夜间醒来", "夜间睡眠欠佳"]),
@@ -153,14 +154,14 @@ export function scoreXiongScale(scale: XiongScale, answers: readonly (number | n
   const values = scale.items.map((item, index) => itemValue(item, answers[index] as number));
   if (scale.id === "screen") {
     const phq = values[0] + values[1], gad = values[2] + values[3];
-    const flags = phq >= 3 || gad >= 3 ? ["有一项得分 ≥3 分：按需求说明，建议继续填写 SCL-90，并把结果带给医生进一步评估。"] : [];
+    const flags = phq >= 3 || gad >= 3 ? ["有一项得分 ≥3 分：建议继续填写症状自评量表 SCL-90，并把结果带给医生进一步评估。"] : [];
     return { lines: [`PHQ-2：${phq} / 6`, `GAD-2：${gad} / 6`], flags, summary: `PHQ-2 ${phq} 分，GAD-2 ${gad} 分` };
   }
   if (scale.id === "scl90") {
     const total = values.reduce((a, b) => a + b, 0);
     const positive = values.filter(value => value >= 2).length;
     const factors = Object.entries(SCL90_FACTORS).map(([name, items]) => `${name} ${mean(items.map(n => values[n - 1]))}`);
-    const flags = values[14] >= 2 ? [XIONG_CRISIS_TEXT] : [];
+    const flags = scl90Flags(values);
     return { lines: [`总分：${total}（90–450）`, `阳性项目数：${positive}`, `因子分：${factors.join("，")}`], flags, summary: `SCL-90 总分 ${total}，阳性项目 ${positive} 项` };
   }
   const groups = [...new Set(scale.items.map(item => item.group!))];
@@ -170,7 +171,16 @@ export function scoreXiongScale(scale: XiongScale, answers: readonly (number | n
   return { lines: [`总均分：${overall ?? "—"}（0–6）`, `各部分均分：${domains.join("，")}`], flags: [], summary: `鼻结膜炎生存质量总均分 ${overall ?? "—"}` };
 }
 
-export const XIONG_CRISIS_TEXT = "你提到有想结束自己生命的想法，这需要认真对待。请让信任的人陪在身边，尽快联系精神心理专业人员；如果此刻有伤害自己的冲动或计划，请立即拨打 120 或 110，也可拨打全国心理援助热线 12356。";
+// SCL-90 中涉及自伤、伤人的题（题号从 1 开始），选“轻度”及以上即出求助提示。
+export const SCL90_SELF_HARM_ITEMS = [15, 59] as const;
+export const SCL90_HARM_OTHERS_ITEMS = [63] as const;
+export function scl90Flags(values: readonly number[]) {
+  const hit = (items: readonly number[]) => items.some(n => values[n - 1] >= 2);
+  return [...(hit(SCL90_SELF_HARM_ITEMS) ? [XIONG_CRISIS_TEXT] : []), ...(hit(SCL90_HARM_OTHERS_ITEMS) ? [XIONG_HARM_OTHERS_TEXT] : [])];
+}
+
+export const XIONG_HARM_OTHERS_TEXT = "你提到有想打人或伤害他人的冲动。请先离开让你激动的场景，让信任的人陪着你，尽快联系精神心理专业人员；如果担心马上会伤害别人或自己，请立即拨打 110 或 120，也可以拨打全国心理援助热线 12356。";
+export const XIONG_CRISIS_TEXT = "你提到有想结束自己生命或常想到死亡的念头，这需要认真对待。请让信任的人陪在身边，尽快联系精神心理专业人员；如果此刻有伤害自己的冲动或计划，请立即拨打 120 或 110，也可拨打全国心理援助热线 12356。";
 
 // ---- 记录 ----
 export type XiongIntakeEntry = {
@@ -201,8 +211,9 @@ export function intakeSummary(entry: XiongIntakeEntry) {
   return lines.filter(Boolean).join("\n");
 }
 
-export function intakeQuestion(entry: XiongIntakeEntry) {
-  return `这是我的鼻病与情志自填记录（${entry.id}）：\n${intakeSummary(entry)}\n请结合熊老的鼻五度与形神合一学说，帮我整理这些表现的科普要点，以及就诊时可以向医生说明的内容。`;
+// 就诊要点：本机拼成文字供复制给医生，不发给任何模型。
+export function intakeVisitNotes(entry: XiongIntakeEntry) {
+  return `鼻病与情志自填记录（${entry.id}，${entry.createdAt.slice(0, 10)}）\n${intakeSummary(entry)}`;
 }
 
 const csvCell = (value: string) => /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;

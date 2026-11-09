@@ -85,7 +85,7 @@ test('shared navigation keeps Chen labels and icons and uses off for unavailable
   const items = compiled.exports.navItems;
   const navigation = configuredNavigation(doctor, items);
   assert.deepEqual(navigation, items.filter(item => ['home', 'ask', 'services'].includes(item.id)));
-  assert.deepEqual(compiled.exports.doctorNavigation(doctor).map(item => item.label), ['首页', '问学', '健康问答', '量表测试', '学说']);
+  assert.deepEqual(compiled.exports.doctorNavigation(doctor).map(item => item.label), ['首页', '问学', '健康问答', '学说']);
   for (const tab of ['manage', 'me']) {
     const saved = resolveDoctorEntryTab('/d/xiong-dajing', doctor.slug, () => tab);
     assert.equal(navigation.some(item => item.id === saved), false);
@@ -454,4 +454,18 @@ test('学说页配图已上线并注明来自公开渠道', () => {
     assert.ok(existsSync(new URL(`../public${figure.src}`, import.meta.url)), figure.src);
     assert.match(figure.caption, /图片来自公开渠道/);
   }
+});
+
+test('熊老问学并入学说页：底部不显示问学，学说页有问学卡，首页有两张入口卡', () => {
+  assert.match(appSource, /const xiongHiddenNav: Tab = "ask"/);
+  assert.match(appSource, /!\(xiongPage && item\.id === xiongHiddenNav\)/);
+  assert.match(appSource, /!\(xiongPage && visibleTab === "ask"\) && <nav/);
+  assert.match(appSource, /<XiongAskCard questions=\{doctor\.quickQuestions\.slice\(0, 2\)\}/);
+  assert.match(appSource, /<XiongEntryCards onPatient=\{onManage\} onLearner=\{onDoctrine\} \/>/);
+  const audience = appSource.match(/className="xiong-ask-audience">([^<]+)</)[1];
+  assert.equal(audience, '专供中医学习者与医师研习学说；个人健康问题请到医院面诊。');
+  assert.doesNotMatch(audience, /不/);
+  assert.match(appSource, /title: "求诊", text: "诊前问诊 · 情志自测"/);
+  assert.match(appSource, /title: "求学", text: "看学说 · 问学"/);
+  assert.doesNotMatch(appSource, /我是患者或家属/);
 });
