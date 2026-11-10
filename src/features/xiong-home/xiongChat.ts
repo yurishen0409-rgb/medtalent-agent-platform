@@ -1,7 +1,7 @@
 // 熊老健康问答（聊天式）：题目顺序、引导语、就诊报告。
 // 引导语见需求页第二十五、二十六节（11-09 AI 圆桌讨论，Claude 核对，本人定）；量表题干和选项沿用 xiongIntake.ts，一字不改。
 // 全部在本机处理，不发给 AI。
-import { XIONG_SCALES, XIONG_TCM_GROUPS, intakeRedFlags, itemValue, scoreXiongScale, type XiongBasicKey } from "./xiongIntake.ts";
+import { XIONG_SCALES, XIONG_SCREEN_ADVICE, XIONG_TCM_GROUPS, intakeRedFlags, itemValue, scoreXiongScale, type XiongBasicKey } from "./xiongIntake.ts";
 
 export const XIONG_CHAT_PARTS = ["基本情况", "中医问诊", "情志自测"] as const;
 
@@ -31,6 +31,11 @@ export const XIONG_CHIP_BLOCKS: Record<string, { title: string; prompt: string; 
     { title: "饮食口渴", prompt: "胃口和口渴情况怎么样？", chips: ["饮食正常", "多食善饥", "反酸嘈杂", "纳呆", "纳可", "纳差", "厌食", "厌油腻", "易饥饿", "饥不欲食", "口干欲饮", "口渴不欲饮", "喜冷饮", "喜热饮"] },
     { title: "睡眠", prompt: "夜里睡得怎么样？", chips: ["睡眠正常", "纳眠一般", "纳差眠可", "纳可眠差", "眠浅", "多梦", "易醒", "早醒", "入睡困难", "嗜睡"] },
   ],
+  // 二便拆成大便、小便两题（本人 11-10 定）；“二便正常”放在大便题第一项，选了它就不再问小便。
+  二便: [
+    { title: "大便", prompt: "先说大便：顺畅吗？成形吗？", chips: ["二便正常", "大便黏", "大便干结", "便溏", "稀水样便", "泡沫样便", "大便前半段干后半段稀", "便后腹胀腹痛减轻", "大便带有血丝", "溏结不调", "完谷不化"] },
+    { title: "小便", prompt: "再说小便，有哪些情况？", chips: ["小便短赤", "尿频", "尿急", "尿痛", "尿黄", "尿清长"] },
+  ],
 };
 
 export const XIONG_CHAT_TEXT = {
@@ -43,7 +48,7 @@ export const XIONG_CHAT_TEXT = {
   done: "辛苦您了，您的回答已记好。",
   report: "就诊报告整理好了，面诊时请拿给医生看。",
   someSkipped: "部分题目已跳过，面诊时可向医生补充。",
-  scl90: "精力允许的话，可再做一份 90 题的心理自评。",
+  next: "确诊变应性鼻炎的，可再做生存质量问卷。",
   other: "您补充的情况已记下，会写进报告。",
 } as const;
 
@@ -156,7 +161,7 @@ const screenPart = (answers: readonly (number | null)[], from: number, name: str
 export type XiongChatReport = { blocks: { title: string; lines: string[] }[]; advice: string[]; flags: string[]; text: string };
 
 // 就诊报告：只整理用户自己的回答和量表分数，不做辨证和诊断。
-export function buildXiongChatReport(answers: XiongChatAnswers, scl90Summary: string | null, date = new Date()): XiongChatReport {
+export function buildXiongChatReport(answers: XiongChatAnswers, date = new Date()): XiongChatReport {
   const b = answers.basic;
   const basic = [
     b.birthYear && `${b.birthYear} 年生`, b.sex, b.married, b.occupation, b.education,
@@ -172,12 +177,11 @@ export function buildXiongChatReport(answers: XiongChatAnswers, scl90Summary: st
   const screen = XIONG_SCALES.find(item => item.id === "screen")!;
   const full = scoreXiongScale(screen, answers.screen);
   const advice = full ? full.flags : [phq.score, gad.score].some(score => score !== null && score >= 3)
-    ? ["有一项得分 ≥3 分：建议继续填写症状自评量表 SCL-90，并把结果带给医生进一步评估。"] : [];
+    ? [XIONG_SCREEN_ADVICE] : [];
   const blocks = [
     { title: "一般资料", lines: basic.length ? [basic.join(" · ")] : ["未填写"] },
     { title: "中医问诊", lines: tcm.length ? tcm : ["未填写"] },
     { title: "情志初筛", lines: [`${phq.line} · ${gad.line}`] },
-    { title: "SCL-90", lines: [scl90Summary ?? "未填写"] },
   ];
   const flags = intakeRedFlags(answers.chips);
   const head = `就诊报告（${date.toISOString().slice(0, 10)}，供医生参考）`;
@@ -201,7 +205,10 @@ export const XIONG_REGIONS = [
 
 // 没点到的部位就不问；跳过了选部位这一步，则四个部位都问。
 export function isXiongStepActive(step: XiongChatStep, answers: XiongChatAnswers) {
-  if (step.kind !== "tags" || step.block === undefined || XIONG_TCM_GROUPS[step.group].title !== "症状") return true;
+  if (step.kind !== "tags" || step.block === undefined) return true;
+  const title = XIONG_TCM_GROUPS[step.group].title;
+  if (title === "二便") return step.block === 0 || !answers.chips.includes(XIONG_EXCLUSIVE_CHIPS.二便);
+  if (title !== "症状") return true;
   if (!answers.regions || answers.skipped.includes("regions")) return true;
   return answers.regions.includes(step.block);
 }

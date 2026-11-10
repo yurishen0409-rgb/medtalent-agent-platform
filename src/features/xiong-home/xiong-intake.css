@@ -114,11 +114,16 @@
 .xc-head h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 1px; color: var(--xc-main); }
 .xc-head small { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 13px; color: #595752; }
 .xc-head small i { width: 7px; height: 7px; border-radius: 50%; background: var(--xc-line); }
-.xc-head button { flex: none; width: 44px; height: 44px; border: 1px solid #D9D2C5; border-radius: 50%; background: #FFFCF6; color: var(--xc-main); display: inline-flex; align-items: center; justify-content: center; }
+.xc-head { position: relative; }
+.xc-head > button { flex: none; min-height: 44px; padding: 0 12px; border: 1px solid var(--xc-line); border-radius: 22px; background: #FFFCF6; color: var(--xc-main); font-size: 15px; }
+.xc-head > button[aria-expanded="true"] { background: var(--xc-tint); border-color: var(--xc-main); }
 .xc-head button:active { background: var(--xc-tint); }
+.xc-menu { position: absolute; top: calc(100% - 4px); right: 16px; z-index: 5; display: grid; min-width: 150px; padding: 4px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; box-shadow: 0 6px 16px rgba(59, 94, 76, .16); animation: xc-in .2s ease-out both; }
+.xc-menu button { min-height: 44px; padding: 0 12px; border: 0; border-radius: 6px; background: none; color: #2B2A28; font-size: 16px; text-align: left; }
+.xc-menu button:active { background: var(--xc-tint); }
 .xc-safety { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 -16px; padding: 8px 16px; background: var(--xc-tint); color: var(--xc-main); font-size: 13px; }
-.xc-map { display: block; width: min(100%, 300px); margin: 0 auto; animation: xc-in 1.2s cubic-bezier(.22,.8,.3,1) both; }
-.xc-map-line { fill: none; stroke: #6E8A79; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 900; animation: xc-draw 2.4s ease-out both; }
+.xc-map { display: block; width: min(100%, 300px); margin: 0 auto; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
+.xc-map-line { fill: none; stroke: #6E8A79; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 900; animation: xc-draw 1s ease-out both; }
 .xc-zone-hit { fill: rgba(227, 234, 229, 0); stroke: #6E8A79; stroke-width: 1.2; stroke-dasharray: 4 4; cursor: pointer; transition: fill .45s, stroke .45s; -webkit-tap-highlight-color: rgba(59, 94, 76, .16); }
 .xc-zone-hit:active { fill: rgba(227, 234, 229, .9); }
 .xc-zone-hit.is-on { fill: rgba(227, 234, 229, .85); stroke: #3B5E4C; stroke-width: 2; stroke-dasharray: none; }
@@ -136,15 +141,15 @@
 .xc-help p { margin: 0; font-size: 15px; line-height: 1.6; color: #7A3B26; }
 .xc-help p + p { margin-top: 6px; }
 .xc-log, .xc-turn { display: grid; gap: 8px; }
-.xc-bot { justify-self: start; max-width: 88%; padding: 12px 16px; border: 1px solid #D9D2C5; border-radius: 16px; background: #FFFCF6; font-size: 17px; line-height: 1.55; animation: xc-in 1.2s cubic-bezier(.22,.8,.3,1) both; }
+.xc-bot { justify-self: start; max-width: 88%; padding: 12px 16px; border: 1px solid #D9D2C5; border-radius: 16px; background: #FFFCF6; font-size: 17px; line-height: 1.55; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-typing { display: flex; gap: 4px; padding: 14px 12px; }
-.xc-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--xc-main); animation: xc-dot 2.2s ease-in-out infinite; }
-.xc-typing i:nth-child(2) { animation-delay: .4s; }
-.xc-typing i:nth-child(3) { animation-delay: .8s; }
-.xc-me { justify-self: end; display: flex; align-items: center; gap: 8px; max-width: 84%; padding: 9px 14px; border-radius: 16px; background: var(--xc-main); color: #FFFCF6; font-size: 17px; line-height: 1.5; animation: xc-in 1s cubic-bezier(.22,.8,.3,1) both; }
+.xc-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--xc-main); animation: xc-dot 1.2s ease-in-out infinite; }
+.xc-typing i:nth-child(2) { animation-delay: .2s; }
+.xc-typing i:nth-child(3) { animation-delay: .4s; }
+.xc-me { justify-self: end; display: flex; align-items: center; gap: 8px; max-width: 84%; padding: 9px 14px; border-radius: 16px; background: var(--xc-main); color: #FFFCF6; font-size: 17px; line-height: 1.5; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-me em { flex: none; min-width: 22px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; background: #FFFCF6; color: var(--xc-main); font-size: 13px; font-style: normal; }
 .xc-zone { display: grid; gap: 8px; padding-top: 4px; }
-.xc-op { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 12px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; color: #2B2A28; font-size: 17px; text-align: left; animation: xc-in 1s cubic-bezier(.22,.8,.3,1) both; transition: background .12s, border-color .12s; }
+.xc-op { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 12px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; color: #2B2A28; font-size: 17px; text-align: left; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; transition: background .12s, border-color .12s; }
 .xc-op:active, .xc-cell:active, .xc-tag:active, .xc-link:active, .xc-foot button:active, .xc-summary button:active { background: var(--xc-tint); }
 .xc-primary:active { background: var(--xc-tint); color: var(--xc-main); box-shadow: inset 0 0 0 2px var(--xc-main); }
 .xc-op b { flex: none; width: 24px; height: 24px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; background: var(--xc-tint); color: var(--xc-main); font-size: 14px; font-weight: 500; }
@@ -156,11 +161,11 @@
 .xc-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .xc-grid-4 { grid-template-columns: repeat(2, 1fr); }
 .xc-grid-5 { grid-template-columns: repeat(5, 1fr); }
-.xc-cell { min-height: 48px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; color: #2B2A28; font-size: 16px; animation: xc-in 1s cubic-bezier(.22,.8,.3,1) both; }
+.xc-cell { min-height: 48px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; color: #2B2A28; font-size: 16px; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-grid-5 .xc-cell { font-size: 15px; padding: 0; }
 .xc-key { min-height: 56px; font-size: 20px; }
 .xc-tags { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.xc-tag { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 6px 10px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; color: #2B2A28; font-size: 16px; line-height: 1.35; text-align: left; animation: xc-in 1s cubic-bezier(.22,.8,.3,1) both; }
+.xc-tag { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 6px 10px; border: 1px solid var(--xc-line); border-radius: 8px; background: #FFFCF6; color: #2B2A28; font-size: 16px; line-height: 1.35; text-align: left; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-tag span { flex: 1; }
 .xc-tag .xc-check { flex: none; color: var(--xc-main); }
 .xc-tag.is-exclusive { grid-column: 1 / -1; border-style: dashed; }
@@ -176,18 +181,18 @@
 .xc-display small, .xc-hint, .xc-notice { font-size: 14px; color: #595752; }
 .xc-hint, .xc-notice { margin: 0; }
 .xc-notice { color: var(--xc-main); }
-.xc-summary { display: grid; animation: xc-scroll 1.3s cubic-bezier(.22,.8,.3,1) both; border: 1px solid #D9D2C5; border-radius: 8px; background: #FFFCF6; animation: xc-in 1s cubic-bezier(.22,.8,.3,1) both; }
+.xc-summary { display: grid; border: 1px solid #D9D2C5; border-radius: 8px; background: #FFFCF6; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-summary > div { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; font-size: 15px; }
 .xc-summary > div + div { border-top: 1px solid #ECE6DA; }
 .xc-summary span { flex: none; width: 5.5em; color: #595752; }
 .xc-summary b { flex: 1; font-weight: 500; }
 .xc-summary b.is-empty { color: #595752; font-weight: 400; }
 .xc-summary button { min-height: 36px; padding: 0 8px; border: 0; background: none; color: var(--xc-main); font-size: 15px; text-decoration: underline; }
-.xc-scale { display: grid; gap: 8px; padding: 12px; border: 1px solid #D9D2C5; border-radius: 8px; background: #FFFCF6; animation: xc-in 1s cubic-bezier(.22,.8,.3,1) both; }
+.xc-scale { display: grid; gap: 8px; padding: 12px; border: 1px solid #D9D2C5; border-radius: 8px; background: #FFFCF6; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-scale small { font-size: 13px; color: #595752; }
 .xc-scale p { margin: 0 0 4px; font-size: 18px; line-height: 1.5; }
 .xc-consent { margin: 0; font-size: 14px; line-height: 1.6; color: #595752; }
-.xc-report { padding: 12px 14px; border: 1px solid #D9D2C5; border-top: 3px solid var(--xc-main); border-radius: 8px; background: #FFFCF6; font-size: 15px; line-height: 1.7; animation: xc-scroll 1.4s cubic-bezier(.22,.8,.3,1) both; }
+.xc-report { padding: 12px 14px; border: 1px solid #D9D2C5; border-top: 3px solid var(--xc-main); border-radius: 8px; background: #FFFCF6; font-size: 15px; line-height: 1.7; animation: xc-scroll .5s cubic-bezier(.22,.8,.3,1) both; }
 .xc-report header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .xc-report header small { font-size: 12px; color: #595752; }
 .xc-report h4 { margin: 10px 0 2px; font-size: 15px; font-weight: 600; color: var(--xc-main); }
@@ -196,14 +201,15 @@
 .xc-foot { display: flex; justify-content: space-between; gap: 8px; }
 .xc-foot button { min-height: 44px; padding: 0 6px; border: 0; background: none; color: #595752; font-size: 15px; }
 .xc-foot button:disabled { opacity: .4; }
-/* 小动效（中医主调，克制）：按下轻压；选中时竹青淡墨从中间晕开；勾轻轻弹出；已选数字跳一下；分段进度条缓缓填色。 */
-.xc-op, .xc-tag, .xc-cell, .xc-primary { position: relative; overflow: hidden; transition: background .4s, border-color .4s, transform .25s ease-out; }
+/* 动效规则（11-10 本人定，合并版）：换题零等待，点了才有墨韵；墨滴只在三个部分开头，≤0.6 秒；选项一起出现；首页首屏直接可见。
+   小动效（中医主调，克制）：按下轻压；选中时竹青淡墨从中间晕开；勾轻轻弹出；已选数字跳一下；分段进度条缓缓填色。 */
+.xc-op, .xc-tag, .xc-cell, .xc-primary { position: relative; overflow: hidden; transition: background .2s, border-color .2s, transform .15s ease-out; }
 .xc-op:active, .xc-tag:active, .xc-cell:active, .xc-primary:active { transform: scale(.98); }
-.xc-op.is-on::after, .xc-tag.is-on::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at center, rgba(59, 94, 76, .22) 0, rgba(59, 94, 76, 0) 70%); animation: xc-ink 1.6s cubic-bezier(.2,.7,.3,1) forwards; }
+.xc-op.is-on::after, .xc-tag.is-on::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at center, rgba(59, 94, 76, .22) 0, rgba(59, 94, 76, 0) 70%); animation: xc-ink .6s cubic-bezier(.2,.7,.3,1) forwards; }
 /* 勾像盖印章：方框小印，从上方落下、轻压、回正。 */
-.xc-op.is-on .xc-arrow, .xc-tag .xc-check { box-sizing: content-box; padding: 1px; border: 1.5px solid var(--xc-main); border-radius: 3px; animation: xc-stamp .8s cubic-bezier(.3, 1.3, .5, 1) both; }
-.xc-count { display: inline-block; animation: xc-bump .8s ease-out; }
-.xc-parts li { transition: border-color 1.4s ease, color 1.4s ease; }
+.xc-op.is-on .xc-arrow, .xc-tag .xc-check { box-sizing: content-box; padding: 1px; border: 1.5px solid var(--xc-main); border-radius: 3px; animation: xc-stamp .3s cubic-bezier(.3, 1.3, .5, 1) both; }
+.xc-count { display: inline-block; animation: xc-bump .3s ease-out; }
+.xc-parts li { transition: border-color .4s ease, color .4s ease; }
 @keyframes xc-ink { from { opacity: .9; transform: scale(.15); filter: blur(2px); } 50% { opacity: .55; } to { opacity: 0; transform: scale(1.8); filter: blur(6px); } }
 @keyframes xc-stamp { 0% { opacity: 0; transform: scale(1.9) rotate(-14deg); } 55% { opacity: 1; transform: scale(.88) rotate(2deg); } 100% { opacity: 1; transform: none; } }
 @keyframes xc-pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
@@ -223,18 +229,14 @@
 /* 熊老全站小动效（中医主调，克制）：卡片如墨渐显、按下轻压、理法方药切换时图标轻弹、入口箭头前探。 */
 .is-xiong :is(.xiong-door, .xiong-ask-quick button, .xiong-ask-bar, .xiong-ask-back, .xiong-doctrine-nav button, .xiong-quick button, .xiong-link-card, .tang-card-tabs button) { transition: transform .25s ease-out, background-color .45s, border-color .45s, color .45s; }
 .is-xiong :is(.xiong-door, .xiong-ask-quick button, .xiong-ask-bar, .xiong-doctrine-nav button, .xiong-quick button, .xiong-link-card, .tang-card-tabs button):active { transform: scale(.98); }
-.is-xiong .journey-tab-panel :is(.xiong-door, .xiong-ask-card, .tang-card, .xiong-workspace > section) { animation: xw-ink 1.4s cubic-bezier(.22,.8,.3,1) both; }
-.is-xiong .journey-tab-panel .xiong-door:nth-child(2) { animation-delay: .25s; }
-.is-xiong .journey-tab-panel .tang-card:nth-of-type(2) { animation-delay: .3s; }
-.is-xiong .journey-tab-panel .tang-card:nth-of-type(3) { animation-delay: .55s; }
-.is-xiong .journey-tab-panel .tang-card:nth-of-type(n+4) { animation-delay: .8s; }
-.is-xiong .xiong-doctrine-nav button.is-active svg { animation: xc-stamp .85s cubic-bezier(.3, 1.3, .5, 1) both; }
+.is-xiong .journey-tab-panel :is(.xiong-door, .xiong-ask-card, .tang-card, .xiong-workspace > section) { animation: xw-ink .45s cubic-bezier(.22,.8,.3,1) both; }
+.is-xiong .xiong-doctrine-nav button.is-active svg { animation: xc-stamp .3s cubic-bezier(.3, 1.3, .5, 1) both; }
 .is-xiong .xiong-door > i { transition: background-color .45s, transform .5s; }
 .is-xiong .xiong-door:active > i { transform: rotate(-8deg); }
 .is-xiong .xiong-door em, .is-xiong .xiong-ask-quick button b { transition: transform .45s ease-out; }
 .is-xiong .xiong-door:active em, .is-xiong .xiong-ask-quick button:active b { transform: translateX(3px); }
 /* 如墨渐显：由淡而浓、由虚而实。 */
-@keyframes xw-ink { from { opacity: 0; transform: translateY(10px); filter: blur(4px) saturate(.4); } 60% { opacity: .85; filter: blur(.8px) saturate(.8); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes xw-ink { from { opacity: .55; transform: translateY(4px); filter: blur(1.5px) saturate(.5); } 60% { opacity: .9; filter: blur(.4px) saturate(.85); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .is-xiong * { animation: none !important; transition: none !important; } }
 
 /* 医生端小入口：字小、颜色浅，放在患者页底部；进入后顶部一条返回栏。 */

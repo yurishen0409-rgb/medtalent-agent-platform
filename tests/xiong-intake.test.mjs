@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   entriesToCsv, intakeRedFlags, intakeVisitNotes, normalizeXiongEntries, researchId, scoreXiongScale, turbinateGroup,
-  SCL90_FACTORS, XIONG_BASIC_FIELDS, XIONG_SCALES, XIONG_TCM_GROUPS,
+  SCL90_FACTORS, XIONG_BASIC_FIELDS, XIONG_PATIENT_SCALES, XIONG_SCALES, XIONG_TCM_GROUPS,
 } from '../src/features/xiong-home/xiongIntake.ts';
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, isXiongStepActive, toggleXiongChip, xiongAnswerText, XIONG_CHAT_TEXT, XIONG_REGIONS,
@@ -35,12 +35,14 @@ test('下鼻甲按较重一侧分组', () => {
   assert.equal(turbinateGroup(null, 2), '');
 });
 
-test('快速筛查 ≥3 分提示继续填 SCL-90，界面里没有 CRF、需求说明、数据库字样', () => {
+test('快速筛查 ≥3 分提示请医生评估（SCL-90 已取消），界面里没有 CRF、需求说明、数据库字样', () => {
   assert.equal(scoreXiongScale(scale('screen'), [1, 1, 0, 0]).flags.length, 0);
   const result = scoreXiongScale(scale('screen'), [2, 1, 0, 0]);
   assert.match(result.summary, /PHQ-2 3 分/);
   assert.equal(result.flags.length, 1);
-  assert.match(result.flags[0], /症状自评量表 SCL-90/);
+  assert.match(result.flags[0], /由医生进一步评估/);
+  assert.doesNotMatch(result.flags[0], /SCL-90/);
+  assert.deepEqual(XIONG_PATIENT_SCALES.map(item => item.id), ['screen', 'rqlq'], '患者端没有 SCL-90');
   assert.doesNotMatch(result.flags[0], /CRF|需求说明|数据库/);
   for (const item of XIONG_SCALES) assert.doesNotMatch(item.source + item.subtitle, /CRF|需求说明|数据库|陈主任/);
   assert.equal(scoreXiongScale(scale('screen'), [1, null, 0, 0]), null);
@@ -105,7 +107,7 @@ test('聊天式健康问答：三部分顺序、引导语短句、保留鼻腔�
   const steps = buildXiongChatSteps();
   assert.deepEqual([...new Set(steps.map(step => step.part))], [0, 1, 2]);
   assert.ok(steps.some(step => step.key === 'widenCause'));
-  assert.equal(steps.filter(step => step.kind === 'tags').length, 13, '诱因、特征、二便、情志各一题；症状 4 题，寒热汗 2 题，饮食睡眠 3 题');
+  assert.equal(steps.filter(step => step.kind === 'tags').length, 14, '诱因、特征、情志各一题；症状 4 题，寒热汗 2 题，饮食睡眠 3 题，二便 2 题（大便、小便）');
   assert.equal(steps.filter(step => step.kind === 'scale').length, 4);
   const lines = [...steps.flatMap(step => step.lines), ...Object.values(XIONG_CHAT_TEXT)];
   for (const line of lines.filter(line => line !== XIONG_CHAT_TEXT.welcome)) assert.ok([...line].length <= 25, line);
@@ -120,10 +122,10 @@ test('互斥项清掉本组其他项，跳过记为缺失，量表缺题标未�
   const answers = { ...emptyXiongChatAnswers(), basic: { sex: '女' }, chips: ['鼻塞', '呼吸困难'], screen: [2, 1, null, null], skipped: ['scale-2'] };
   const scale = buildXiongChatSteps().find(step => step.kind === 'scale' && step.item === 2);
   assert.equal(xiongAnswerText(scale, answers), '已跳过');
-  const report = buildXiongChatReport(answers, null, new Date('2026-11-09T02:00:00Z'));
-  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '情志初筛', 'SCL-90']);
+  const report = buildXiongChatReport(answers, new Date('2026-11-09T02:00:00Z'));
+  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '情志初筛']);
   assert.match(report.text, /PHQ-2：3 \/ 6 · GAD-2：未完成（已答 0\/2）/);
-  assert.match(report.text, /SCL-90】未填写/);
+  assert.doesNotMatch(report.text, /SCL-90/);
   assert.ok(report.advice.length === 1, 'PHQ-2 ≥3 给出进一步评估建议');
   assert.ok(report.flags.some(flag => flag.includes('120')), '呼吸困难出求助提示');
   assert.doesNotMatch(report.text, /证|辨|诊断为/);
@@ -149,4 +151,12 @@ test('头面部图：选部位在症状四题之前，只问点到的部位；�
   assert.ok(symptom.every(step => isXiongStepActive(step, { ...base, regions: [0], skipped: ['regions'] })));
   assert.ok(symptom.every(step => isXiongStepActive(step, base)));
   assert.equal(xiongAnswerText(steps[at], { ...base, regions: [0, 3] }), '鼻、头、眼、颈');
+});
+
+test('二便拆成大便、小便：选“二便正常”就不再问小便', () => {
+  const steps = buildXiongChatSteps().filter(step => step.kind === 'tags' && XIONG_TCM_GROUPS[step.group].title === '二便');
+  assert.deepEqual(steps.map(step => step.block), [0, 1]);
+  const base = emptyXiongChatAnswers();
+  assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['二便正常'] })), [true, false]);
+  assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['便溏'] })), [true, true]);
 });

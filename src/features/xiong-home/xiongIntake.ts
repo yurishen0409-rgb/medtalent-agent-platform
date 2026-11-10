@@ -140,6 +140,8 @@ const RQLQ: XiongScale = {
 };
 
 export const XIONG_SCALES: readonly XiongScale[] = [SCREEN, SCL90, RQLQ];
+// 患者端可选的量表：SCL-90 不属于本专科，已取消（本人 11-10 定）；定义保留，只为能显示旧记录。
+export const XIONG_PATIENT_SCALES: readonly XiongScale[] = [SCREEN, RQLQ];
 
 export function itemValue(item: XiongScaleItem, answer: number) {
   return item.values ? item.values[answer] : answer;
@@ -148,13 +150,16 @@ export function itemValue(item: XiongScaleItem, answer: number) {
 export type XiongScaleResult = { lines: string[]; flags: string[]; summary: string };
 const mean = (values: number[]) => values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length * 100) / 100 : null;
 
+// PHQ-2 或 GAD-2 任一 ≥3 分时的提示。SCL-90 不属于本专科，患者端已取消（本人 11-10 定），改为请医生评估。
+export const XIONG_SCREEN_ADVICE = "有一项得分 ≥3 分：请把结果带给医生，由医生进一步评估。";
+
 // 只给出分数和需求说明里写明的筛查规则，不做诊断。
 export function scoreXiongScale(scale: XiongScale, answers: readonly (number | null)[]): XiongScaleResult | null {
   if (answers.length !== scale.items.length || answers.some(answer => answer === null)) return null;
   const values = scale.items.map((item, index) => itemValue(item, answers[index] as number));
   if (scale.id === "screen") {
     const phq = values[0] + values[1], gad = values[2] + values[3];
-    const flags = phq >= 3 || gad >= 3 ? ["有一项得分 ≥3 分：建议继续填写症状自评量表 SCL-90，并把结果带给医生进一步评估。"] : [];
+    const flags = phq >= 3 || gad >= 3 ? [XIONG_SCREEN_ADVICE] : [];
     return { lines: [`PHQ-2：${phq} / 6`, `GAD-2：${gad} / 6`], flags, summary: `PHQ-2 ${phq} 分，GAD-2 ${gad} 分` };
   }
   if (scale.id === "scl90") {

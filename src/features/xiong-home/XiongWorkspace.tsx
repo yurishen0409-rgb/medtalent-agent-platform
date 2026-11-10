@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useDoctorLocalState } from "../../hooks/useDoctorLocalState";
 import {
   entriesToCsv, intakeRedFlags, intakeVisitNotes, intakeSummary, normalizeXiongEntries, researchId, scoreXiongScale, turbinateGroup,
-  RQLQ_ACTIVITIES, XIONG_BASIC_FIELDS, XIONG_DOCTOR_GROUPS, XIONG_INTAKE_SECTION, XIONG_SCALES, XIONG_TCM_GROUPS, XIONG_TURBINATE_SCORES,
+  RQLQ_ACTIVITIES, XIONG_BASIC_FIELDS, XIONG_DOCTOR_GROUPS, XIONG_INTAKE_SECTION, XIONG_PATIENT_SCALES, XIONG_SCALES, XIONG_TCM_GROUPS, XIONG_TURBINATE_SCORES,
   type XiongBasicKey, type XiongEntry, type XiongIntakeEntry, type XiongScale, type XiongScaleEntry,
 } from "./xiongIntake";
 import { XiongChatIntake } from "./XiongChatIntake";
@@ -157,7 +157,7 @@ export function XiongScalePanel({ slug, initial }: { slug: string; initial?: Xio
       {shown.result.flags.length > 0 && <div className="xiong-alert" role="alert">{shown.result.flags.map(flag => <p key={flag}>{flag}</p>)}</div>}
       <p className="xiong-privacy">结果不会发给 AI。分数含义请就诊时交给医生解读。</p>
     </section>}
-    <div className="xiong-scale-list">{XIONG_SCALES.map(scale => <button key={scale.id} type="button" onClick={() => { setLatest(null); setActive(scale); }}><b>{scale.title}</b><small>{scale.subtitle} · {scale.duration}</small></button>)}</div>
+    <div className="xiong-scale-list">{XIONG_PATIENT_SCALES.map(scale => <button key={scale.id} type="button" onClick={() => { setLatest(null); setActive(scale); }}><b>{scale.title}</b><small>{scale.subtitle} · {scale.duration}</small></button>)}</div>
     <section className="xiong-ws-card" aria-label="历史结果">
       <header className="xiong-list-head"><h3>历史结果（{results.length}）</h3>{entries.length > 0 && <button type="button" onClick={() => downloadCsv(entries)}>导出 CSV</button>}</header>
       {results.length ? results.map(entry => <article className="xiong-entry" key={entry.id}><b>{detail(entry).scale.title}</b><small>{entry.id} · {new Date(entry.createdAt).toLocaleString("zh-CN")}</small><p>{entry.summary}{entry.activities?.some(Boolean) && `；受限活动：${entry.activities.filter(Boolean).join("、")}`}</p>
@@ -172,18 +172,23 @@ export function XiongScalePanel({ slug, initial }: { slug: string; initial?: Xio
 export function XiongHealthPanel({ slug }: { slug: string }) {
   const [view, setView] = useState<"chat" | "scales" | "doctor">("chat");
   const [scaleStart, setScaleStart] = useState<XiongScale["id"] | undefined>();
-  const [entries, setEntries] = useXiongEntries(slug);
+  const [, setEntries] = useXiongEntries(slug);
   if (view === "doctor") return <div className="xiong-health">
     <div className="xiong-doctor-bar"><button type="button" onClick={() => setView("chat")}>‹ 返回问答</button><b>医生端 · 门诊记录（演示）</b></div>
     <XiongIntakePanel slug={slug} />
   </div>;
   return <div className="xiong-health">
-    {view === "chat" && <XiongChatIntake slug={slug} entries={entries} onSave={saved => setEntries(current => [...saved, ...normalizeXiongEntries(current)].slice(0, 200))} onScl90={() => { setScaleStart("scl90"); setView("scales"); }} />}
-    {view === "scales" && <XiongScalePanel key={scaleStart ?? "list"} slug={slug} initial={scaleStart} />}
-    <button type="button" className="xiong-doctor-link" onClick={() => setView("doctor")}>医生填写入口 ›</button>
-    <nav className="xiong-quick" aria-label="健康问答快捷入口">
-      {([["chat", "问答填写"], ["scales", "量表测试"]] as const).map(([id, label]) => <button key={id} type="button" aria-pressed={view === id} className={view === id ? "is-on" : ""} onClick={() => { setScaleStart(undefined); setView(id); }}>{label}</button>)}
-    </nav>
+    {view === "chat" && <XiongChatIntake slug={slug}
+      onSave={saved => setEntries(current => [...saved, ...normalizeXiongEntries(current)].slice(0, 200))}
+      onRemove={ids => setEntries(current => normalizeXiongEntries(current).filter(entry => !ids.includes(entry.id)))}
+      onScales={start => { setScaleStart(start); setView("scales"); }} onDoctor={() => setView("doctor")} />}
+    {/* 答题时页面只留答题按钮；量表测试、医生填写入口收进问答头部的“更多”（需求页第二十九节，本人 11-10 定）。 */}
+    {view === "scales" && <>
+      <XiongScalePanel key={scaleStart ?? "list"} slug={slug} initial={scaleStart} />
+      <nav className="xiong-quick" aria-label="健康问答快捷入口">
+        {([["chat", "问答填写"], ["scales", "量表测试"]] as const).map(([id, label]) => <button key={id} type="button" aria-pressed={view === id} className={view === id ? "is-on" : ""} onClick={() => { setScaleStart(undefined); setView(id); }}>{label}</button>)}
+      </nav>
+    </>}
   </div>;
 }
 
