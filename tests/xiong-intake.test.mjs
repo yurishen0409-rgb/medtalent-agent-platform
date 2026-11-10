@@ -35,14 +35,13 @@ test('下鼻甲按较重一侧分组', () => {
   assert.equal(turbinateGroup(null, 2), '');
 });
 
-test('快速筛查 ≥3 分提示请医生评估（SCL-90 已取消），界面里没有 CRF、需求说明、数据库字样', () => {
+test('快速筛查 ≥3 分提示继续填 SCL-90，界面里没有 CRF、需求说明、数据库字样', () => {
   assert.equal(scoreXiongScale(scale('screen'), [1, 1, 0, 0]).flags.length, 0);
   const result = scoreXiongScale(scale('screen'), [2, 1, 0, 0]);
   assert.match(result.summary, /PHQ-2 3 分/);
   assert.equal(result.flags.length, 1);
-  assert.match(result.flags[0], /由医生进一步评估/);
-  assert.doesNotMatch(result.flags[0], /SCL-90/);
-  assert.deepEqual(XIONG_PATIENT_SCALES.map(item => item.id), ['screen', 'rqlq'], '患者端没有 SCL-90');
+  assert.match(result.flags[0], /症状自评量表 SCL-90/);
+  assert.deepEqual(XIONG_PATIENT_SCALES.map(item => item.id), ['screen', 'scl90', 'rqlq'], '患者端保留 SCL-90（本人 11-10 改定）');
   assert.doesNotMatch(result.flags[0], /CRF|需求说明|数据库/);
   for (const item of XIONG_SCALES) assert.doesNotMatch(item.source + item.subtitle, /CRF|需求说明|数据库|陈主任/);
   assert.equal(scoreXiongScale(scale('screen'), [1, null, 0, 0]), null);
@@ -122,10 +121,10 @@ test('互斥项清掉本组其他项，跳过记为缺失，量表缺题标未�
   const answers = { ...emptyXiongChatAnswers(), basic: { sex: '女' }, chips: ['鼻塞', '呼吸困难'], screen: [2, 1, null, null], skipped: ['scale-2'] };
   const scale = buildXiongChatSteps().find(step => step.kind === 'scale' && step.item === 2);
   assert.equal(xiongAnswerText(scale, answers), '已跳过');
-  const report = buildXiongChatReport(answers, new Date('2026-11-09T02:00:00Z'));
-  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '情志初筛']);
+  const report = buildXiongChatReport(answers, null, new Date('2026-11-09T02:00:00Z'));
+  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '情志初筛', 'SCL-90']);
   assert.match(report.text, /PHQ-2：3 \/ 6 · GAD-2：未完成（已答 0\/2）/);
-  assert.doesNotMatch(report.text, /SCL-90/);
+  assert.match(report.text, /SCL-90】未填写/);
   assert.ok(report.advice.length === 1, 'PHQ-2 ≥3 给出进一步评估建议');
   assert.ok(report.flags.some(flag => flag.includes('120')), '呼吸困难出求助提示');
   assert.doesNotMatch(report.text, /证|辨|诊断为/);
@@ -159,4 +158,11 @@ test('二便拆成大便、小便：选“二便正常”就不再问小便', ()
   const base = emptyXiongChatAnswers();
   assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['二便正常'] })), [true, false]);
   assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['便溏'] })), [true, true]);
+});
+
+test('保留 SCL-90：报告页可进 SCL-90，第 15 题出求助提示（本人 11-10 改定）', async () => {
+  const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
+  assert.match(chat, /onScales\("scl90"\)/);
+  const answers = Array(90).fill(0); answers[14] = 1;
+  assert.match(scoreXiongScale(scale('scl90'), answers).flags.join(), /120 或 110[\s\S]*12356/);
 });

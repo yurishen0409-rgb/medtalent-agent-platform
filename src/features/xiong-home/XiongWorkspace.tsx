@@ -172,13 +172,13 @@ export function XiongScalePanel({ slug, initial }: { slug: string; initial?: Xio
 export function XiongHealthPanel({ slug }: { slug: string }) {
   const [view, setView] = useState<"chat" | "scales" | "doctor">("chat");
   const [scaleStart, setScaleStart] = useState<XiongScale["id"] | undefined>();
-  const [, setEntries] = useXiongEntries(slug);
+  const [entries, setEntries] = useXiongEntries(slug);
   if (view === "doctor") return <div className="xiong-health">
     <div className="xiong-doctor-bar"><button type="button" onClick={() => setView("chat")}>‹ 返回问答</button><b>医生端 · 门诊记录（演示）</b></div>
     <XiongIntakePanel slug={slug} />
   </div>;
   return <div className="xiong-health">
-    {view === "chat" && <XiongChatIntake slug={slug}
+    {view === "chat" && <XiongChatIntake slug={slug} entries={entries}
       onSave={saved => setEntries(current => [...saved, ...normalizeXiongEntries(current)].slice(0, 200))}
       onRemove={ids => setEntries(current => normalizeXiongEntries(current).filter(entry => !ids.includes(entry.id)))}
       onScales={start => { setScaleStart(start); setView("scales"); }} onDoctor={() => setView("doctor")} />}

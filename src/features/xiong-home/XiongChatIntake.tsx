@@ -130,11 +130,12 @@ function RegionsAnswer({ initial, onDone, onSkip }: { initial: number[]; onDone:
   </>;
 }
 
-export function XiongChatIntake({ slug, onSave, onRemove, onScales, onDoctor }: {
+export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onDoctor }: {
   slug: string;
+  entries: readonly XiongEntry[];
   onSave: (entries: XiongEntry[]) => void;
   onRemove: (ids: string[]) => void;
-  onScales: (start?: "rqlq") => void;
+  onScales: (start?: "scl90" | "rqlq") => void;
   onDoctor: () => void;
 }) {
   const initial = useMemo(() => readDraft(slug), [slug]);
@@ -222,7 +223,8 @@ export function XiongChatIntake({ slug, onSave, onRemove, onScales, onDoctor }: 
     setNotice("本机记录已清除。");
   };
 
-  const report = buildXiongChatReport(answers);
+  const latestScl90 = entries.find((entry): entry is XiongScaleEntry => entry.kind === "scale" && entry.scale === "scl90");
+  const report = buildXiongChatReport(answers, latestScl90?.summary ?? null);
   const part = current?.part ?? 2;
 
   const copy = async () => {
@@ -336,10 +338,11 @@ export function XiongChatIntake({ slug, onSave, onRemove, onScales, onDoctor }: 
           {report.advice.map(line => <p className="xc-advice" key={line}>{line}</p>)}
         </article>
         <button type="button" className="xc-primary" onClick={() => void copy()}>复制报告全文</button>
-        <Bot lines={[XIONG_CHAT_TEXT.next]} />
+        <Bot lines={[XIONG_CHAT_TEXT.scl90, XIONG_CHAT_TEXT.next]} />
         <div className="xc-zone">
-          <Option index={0} label="做鼻结膜炎生存质量问卷" delay={0} onClick={() => onScales("rqlq")} />
-          <Option index={1} label="重新填写一份" delay={0} onClick={restart} />
+          <Option index={0} label="做 SCL-90 心理自评" delay={0} onClick={() => onScales("scl90")} />
+          <Option index={1} label="做鼻结膜炎生存质量问卷" delay={0} onClick={() => onScales("rqlq")} />
+          <Option index={2} label="重新填写一份" delay={0} onClick={restart} />
         </div>
         <button type="button" className="xc-link" onClick={clearLocal}>清除本机记录</button>
       </div>}

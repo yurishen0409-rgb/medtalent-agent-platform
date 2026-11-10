@@ -48,6 +48,7 @@ export const XIONG_CHAT_TEXT = {
   done: "辛苦您了，您的回答已记好。",
   report: "就诊报告整理好了，面诊时请拿给医生看。",
   someSkipped: "部分题目已跳过，面诊时可向医生补充。",
+  scl90: "精力允许的话，可再做一份 90 题的心理自评。",
   next: "确诊变应性鼻炎的，可再做生存质量问卷。",
   other: "您补充的情况已记下，会写进报告。",
 } as const;
@@ -161,7 +162,7 @@ const screenPart = (answers: readonly (number | null)[], from: number, name: str
 export type XiongChatReport = { blocks: { title: string; lines: string[] }[]; advice: string[]; flags: string[]; text: string };
 
 // 就诊报告：只整理用户自己的回答和量表分数，不做辨证和诊断。
-export function buildXiongChatReport(answers: XiongChatAnswers, date = new Date()): XiongChatReport {
+export function buildXiongChatReport(answers: XiongChatAnswers, scl90Summary: string | null = null, date = new Date()): XiongChatReport {
   const b = answers.basic;
   const basic = [
     b.birthYear && `${b.birthYear} 年生`, b.sex, b.married, b.occupation, b.education,
@@ -182,6 +183,7 @@ export function buildXiongChatReport(answers: XiongChatAnswers, date = new Date(
     { title: "一般资料", lines: basic.length ? [basic.join(" · ")] : ["未填写"] },
     { title: "中医问诊", lines: tcm.length ? tcm : ["未填写"] },
     { title: "情志初筛", lines: [`${phq.line} · ${gad.line}`] },
+    { title: "SCL-90", lines: [scl90Summary ?? "未填写"] },
   ];
   const flags = intakeRedFlags(answers.chips);
   const head = `就诊报告（${date.toISOString().slice(0, 10)}，供医生参考）`;
