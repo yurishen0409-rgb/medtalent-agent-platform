@@ -171,7 +171,8 @@
 .xc-tag.is-exclusive { grid-column: 1 / -1; border-style: dashed; }
 .xc-tag.is-on { border: 2px solid var(--xc-main); background: var(--xc-tint); padding: 5px 9px; }
 .xc-primary { min-height: 50px; border: 0; border-radius: 8px; background: var(--xc-main); color: #FFFCF6; font-size: 17px; }
-.xc-sticky { position: sticky; bottom: 72px; z-index: 2; box-shadow: 0 -6px 12px rgba(246, 241, 231, .9); }
+/* 11-11 本人反馈：手机上浮动的“选好了 / 请先选一项”盖住选项，改为跟在选项后面，不再浮动。 */
+.xc-sticky { margin-top: 4px; }
 .xc-primary:disabled { background: #D9D2C5; color: #595752; }
 .xc-link { justify-self: start; min-height: 40px; border: 0; background: none; color: var(--xc-main); font-size: 15px; }
 .xc-text { display: grid; gap: 8px; }

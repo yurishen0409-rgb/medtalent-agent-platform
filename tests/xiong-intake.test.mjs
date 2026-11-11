@@ -166,3 +166,11 @@ test('保留 SCL-90：报告页可进 SCL-90，第 15 题出求助提示（本�
   const answers = Array(90).fill(0); answers[14] = 1;
   assert.match(scoreXiongScale(scale('scl90'), answers).flags.join(), /120 或 110[\s\S]*12356/);
 });
+
+test('界面里没有“入组研究以知情同意书为准”', async () => {
+  const { readFile } = await import('node:fs/promises');
+  for (const file of ['XiongChatIntake.tsx', 'XiongWorkspace.tsx']) {
+    const source = await readFile(new URL(`../src/features/xiong-home/${file}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(source.replace(/\/\/.*$/gm, ''), /入组研究|知情同意书为准/, file);
+  }
+});

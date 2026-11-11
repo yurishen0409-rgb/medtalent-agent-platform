@@ -96,7 +96,7 @@ export function XiongIntakePanel({ slug }: { slug: string }) {
       {XIONG_DOCTOR_GROUPS.map(group => <div className="xiong-chip-group" key={group.title}><h4>{group.title}</h4><Chips chips={group.chips} selected={observed} onToggle={chip => setObserved(current => toggle(current, chip))} /></div>)}
     </details>
 
-    <label className="xiong-consent"><input type="checkbox" checked={agreed} onChange={event => setAgreed(event.target.checked)} /> 我了解：本表用于整理就诊和研究资料，不用于诊断；正式入组研究以医院的知情同意书为准。</label>
+    <label className="xiong-consent"><input type="checkbox" checked={agreed} onChange={event => setAgreed(event.target.checked)} /> 我了解：本表只用于整理就诊资料，供医生参考。</label>
     <div className="xiong-actions">
       <button type="button" className="journey-primary-button" disabled={!agreed} onClick={save}>保存记录</button>
     </div>
@@ -199,6 +199,23 @@ export const XIONG_LECTURES: { group: string; items: XiongLecture[] }[] = [
   { group: "学习班专题报告", items: [{ title: "《鼻全息及五度辨证》专题报告", source: "2025年10月31日 杭州市中医院“熊大经中医鼻科理论传承与创新学习班” · 视频待熊老团队提供", questions: ["什么是鼻五度辨证？", "鼻全息论讲的是什么？"] }] },
   { group: "鼻病与情志", items: [{ title: "鼻腔宽大与情志", source: "科普视频待熊老团队提供", questions: ["鼻腔宽大和情绪有什么关系？"] }] },
 ];
+
+// 学术动态：只放公开报道的标题、出处和原文链接，不转载正文。
+export const XIONG_NEWS: XiongLecture[] = [
+  { title: "熊大经全国名中医传承工作站落户杭州市中医院，同步举办“熊大经中医鼻科理论传承与创新学习班”", source: "新华财经 · 2025年11月3日", href: "https://www.cnfin.com/cq-lb/detail/20251103/4328016_1.html", cover: "/assets/xiong/hangzhou-cover.jpg", questions: ["熊氏耳鼻喉科有哪些学术特色？"] },
+];
+
+export function XiongNewsPage({ onAsk, onOpen }: { onAsk: Ask; onOpen: (item: XiongLecture, event: React.MouseEvent<HTMLAnchorElement>) => void }) {
+  return <div className="xiong-lectures">
+    {XIONG_NEWS.map(item => <article className="xiong-lecture" key={item.title}>
+      {item.cover && <img src={item.cover} alt="" />}
+      <b>{item.title}</b>
+      <small>{item.source}{item.cover && " · 封面图片来自公开渠道"}</small>
+      {item.href && <a className="xiong-read-link" href={item.href} target="_blank" rel="noopener noreferrer" onClick={event => onOpen(item, event)}>阅读原文 ›</a>}
+      <div className="xiong-chips">{item.questions.map(question => <button key={question} type="button" onClick={() => onAsk(question)}>问学：{question}</button>)}</div>
+    </article>)}
+  </div>;
+}
 
 export function XiongLecturePage({ onAsk, onOpen }: { onAsk: Ask; onOpen: (lecture: XiongLecture, event: React.MouseEvent<HTMLAnchorElement>) => void }) {
   return <div className="xiong-lectures">

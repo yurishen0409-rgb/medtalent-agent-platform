@@ -8,7 +8,8 @@ import { researchId, XIONG_BASIC_FIELDS, XIONG_SCALES, XIONG_TCM_GROUPS, type Xi
 
 const STEPS = buildXiongChatSteps();
 const SCREEN = XIONG_SCALES.find(scale => scale.id === "screen")!;
-const CONSENT = "我了解：本表用于整理就诊和研究资料，不用于诊断；正式入组研究以医院的知情同意书为准。";
+// 本人 11-11 定：界面不出现“入组研究以知情同意书为准”。
+const CONSENT = "我了解：本表只用于整理就诊资料，供医生参考。";
 
 type Draft = { step: number; answers: XiongChatAnswers };
 const draftKey = (slug: string) => `xiong-chat-draft-v3:${slug}`;

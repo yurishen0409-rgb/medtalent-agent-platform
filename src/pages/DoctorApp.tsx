@@ -123,7 +123,7 @@ import ConsumerReportsPanel from "../features/services/ConsumerReportsPanel";
 import ConsumerServicesPanel from "../features/services/ConsumerServicesPanel";
 import ServicePlanWorksheet from "../features/services/ServicePlanWorksheet";
 import TangFeatureGrid from "../features/services/TangFeatureGrid";
-import { XiongHealthPanel, XiongLecturePage } from "../features/xiong-home/XiongWorkspace";
+import { XiongHealthPanel, XiongLecturePage, XiongNewsPage } from "../features/xiong-home/XiongWorkspace";
 import type { DoctorCustom } from "../features/services/doctorCustom";
 import TangDoctorBio, { TangDoctorCard } from "../features/tang-home/TangDoctorBio";
 import { DoctorVideoItem, EducationArticle, SpecialtyVisitSummary, TangEducationPanel, TangVisitSummary, TangClinicPanel, TangFamilyPanel, TangMessagePanel, TangMorePanel, TangRelaxPanel, TangMedicationPanel, TangSmokingPanel } from "../features/tang-home/TangServicePanels";
@@ -462,20 +462,25 @@ function useWechatLinkCopy() {
   return { openInWechat, note };
 }
 
-function XiongLinkCard({ title, href, cover, label, source, isVideo, onAll }: { title: string; href: string; cover?: string; label: string; source: string; isVideo?: boolean; onAll?: () => void }) {
-  const { openInWechat, note } = useWechatLinkCopy();
-  return <section className="tang-home-videos xiong-slots" aria-label={title}>{onAll ? <header className="xiong-slot-head"><h2>{title}</h2><button type="button" onClick={onAll}>全部视频<CaretRightIcon size={14} /></button></header> : <h2>{title}</h2>}
-    <a className="xiong-link-card" href={href} target="_blank" rel="noopener noreferrer" onClick={openInWechat(href)}>
+// 首页卡片点开先进站内详情页（小程序里外链打不开，本人 11-11 要求“能跳转”）；详情页里再放原文链接。
+function XiongLinkCard({ title, allLabel, cover, label, source, isVideo, onOpen }: { title: string; allLabel: string; cover?: string; label: string; source: string; isVideo?: boolean; onOpen: () => void }) {
+  return <section className="tang-home-videos xiong-slots" aria-label={title}>
+    <header className="xiong-slot-head"><h2>{title}</h2><button type="button" onClick={onOpen}>{allLabel}<CaretRightIcon size={14} /></button></header>
+    <button type="button" className="xiong-link-card" onClick={onOpen}>
       <span className={isVideo ? "xiong-link-cover is-video" : "xiong-link-cover"}>{cover ? <img src={cover} alt="" /> : <small className="xiong-cover-placeholder">封面待提供</small>}{isVideo && <i aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></i>}</span>
       <b>{label}</b><small>{source}{cover && " · 封面图片来自公开渠道"}</small>
-    </a>
-    {note}
+    </button>
   </section>;
 }
 
 function XiongLectureSheet({ onAsk }: { onAsk: (question: string) => void }) {
   const { openInWechat, note } = useWechatLinkCopy();
   return <>{note}<XiongLecturePage onAsk={onAsk} onOpen={(lecture, event) => lecture.href && openInWechat(lecture.href)(event)} /></>;
+}
+
+function XiongNewsSheet({ onAsk }: { onAsk: (question: string) => void }) {
+  const { openInWechat, note } = useWechatLinkCopy();
+  return <>{note}<XiongNewsPage onAsk={onAsk} onOpen={(item, event) => item.href && openInWechat(item.href)(event)} /></>;
 }
 
 function XiongProfileSheet() {
@@ -879,8 +884,8 @@ function HomePanel({
       {isXiong && <>
         <XiongEntryCards onPatient={onManage} onLearner={onDoctrine} />
         <XiongDoctorCard onAll={onExpert} />
-        <XiongLinkCard onAll={() => onTheoryItem?.("名家讲堂")} title="名家讲堂" href="https://weixin.qq.com/sph/ANwcSHDcpL" cover="/assets/xiong/lecture-cover.jpg" label="小鼻子大健康：日常护鼻注意哪些" source="CCTV4《健康中国》· 视频号 · 2026年6月7日" isVideo />
-        <XiongLinkCard title="学术动态" href="https://www.cnfin.com/cq-lb/detail/20251103/4328016_1.html" cover="/assets/xiong/hangzhou-cover.jpg" label="熊大经全国名中医传承工作站落户杭州市中医院，同步举办“熊大经中医鼻科理论传承与创新学习班”" source="新华财经 · 2025年11月3日" />
+        <XiongLinkCard onOpen={() => onTheoryItem?.("名家讲堂")} title="名家讲堂" allLabel="全部视频" cover="/assets/xiong/lecture-cover.jpg" label="小鼻子大健康：日常护鼻注意哪些" source="CCTV4《健康中国》· 视频号 · 2026年6月7日" isVideo />
+        <XiongLinkCard onOpen={() => onTheoryItem?.("学术动态")} title="学术动态" allLabel="全部动态" cover="/assets/xiong/hangzhou-cover.jpg" label="熊大经全国名中医传承工作站落户杭州市中医院，同步举办“熊大经中医鼻科理论传承与创新学习班”" source="新华财经 · 2025年11月3日" />
       </>}
 
       {unified && <>
@@ -2737,7 +2742,7 @@ function DoctorAppBody() {
           })}
         </nav>}
         {custom && tangPanel && <FeatureSheet title={tangPanel === "专家介绍" && doctor.slug === "xiong-dajing" ? "医家小传" : tangPanel === "专家介绍" && custom.bio ? `${doctor.name}专家介绍` : tangPanel} eyebrow="" onClose={closeTangPanel}>
-          {tangPanel === "专家介绍" && doctor.slug === "xiong-dajing" ? <XiongProfileSheet /> : tangPanel === "名家讲堂" && doctor.slug === "xiong-dajing" ? <XiongLectureSheet onAsk={question => { setTangPanel(null); goAsk(question); }} /> : tangPanel === "专家介绍" ? custom.bio ? <div className="tang-expert-sheet"><TangDoctorBio bio={custom.bio} pendingSections={custom.expertSections} onClose={closeTangPanel} /></div> : <div className="tang-expert-sheet"><p>{doctor.hospital}</p><p>{doctor.slug === "xiong-dajing" ? doctor.title : `${doctor.department} · ${doctor.title}`}</p><h3>专业擅长</h3><p>{doctor.specialty}</p>{custom.expertSections.map(section => <section key={section.title}><h3>{section.title}</h3><p>{section.body}</p></section>)}</div>
+          {tangPanel === "专家介绍" && doctor.slug === "xiong-dajing" ? <XiongProfileSheet /> : tangPanel === "名家讲堂" && doctor.slug === "xiong-dajing" ? <XiongLectureSheet onAsk={question => { setTangPanel(null); goAsk(question); }} /> : tangPanel === "学术动态" && doctor.slug === "xiong-dajing" ? <XiongNewsSheet onAsk={question => { setTangPanel(null); goAsk(question); }} /> : tangPanel === "专家介绍" ? custom.bio ? <div className="tang-expert-sheet"><TangDoctorBio bio={custom.bio} pendingSections={custom.expertSections} onClose={closeTangPanel} /></div> : <div className="tang-expert-sheet"><p>{doctor.hospital}</p><p>{doctor.slug === "xiong-dajing" ? doctor.title : `${doctor.department} · ${doctor.title}`}</p><h3>专业擅长</h3><p>{doctor.specialty}</p>{custom.expertSections.map(section => <section key={section.title}><h3>{section.title}</h3><p>{section.body}</p></section>)}</div>
             : custom.serviceDetails?.[tangPanel] ? <PublishedContentDetail key={tangPanel} research={doctor.slug === "xiong-dajing"} onOpenRelated={setTangPanel} content={custom.serviceDetails[tangPanel]} onAsk={question => { setTangPanel(null); goAsk(question); }} />
             : tang && (tangPanel === "量表自评" || tangPanel === "今日心境") ? <TangChatGuidance key={tangPanel} embedded onOpenClinic={() => setTangPanel("门诊指引")} startWithScales={tangPanel === "量表自评"} disabled={templatePreview} onSend={async text => { setTangPanel(null); goAsk(text, false, true); return true; }} />
             : tangPanel === "科普宣教" || tangPanel === "健康宣教" ? educationEmpty ? <p className="tang-svc-note">内容待医生提供</p> : unified ? <TangEducationPanel videos={custom.videos}><><PublishedContentSection content={doctor.content.filter(item => item.type === "article" || item.type === "faq")} onAsk={question => { setTangPanel(null); goAsk(question); }} title={tangPanel} /><div className="tang-svc tang-svc-edu">{doctor.articles.map(article => custom.articleDetails?.[article.id] ? <EducationArticle key={article.id} article={article} detail={custom.articleDetails[article.id]} onAsk={question => { setTangPanel(null); goAsk(question, false, true); }} /> : <button type="button" className="tang-svc-box" key={article.id} onClick={() => { setTangPanel(null); goAsk(article.title, false, true); }}><b>{article.title}</b><small>{article.summary}</small></button>)}</div></></TangEducationPanel> : <><PublishedContentSection content={doctor.content.filter(item => item.type === "article" || item.type === "faq")} onAsk={question => { setTangPanel(null); goAsk(question); }} title={tangPanel} /><div className="tang-svc tang-svc-edu">{doctor.articles.map(article => <button type="button" className="tang-svc-box" key={article.id} onClick={() => { setTangPanel(null); goAsk(article.title, false, true); }}><b>{article.title}</b><small>{article.summary}</small></button>)}</div></>

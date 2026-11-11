@@ -441,9 +441,13 @@ test('熊老标题用字都在思源宋体子集里', async () => {
   }
 });
 
-test('小程序内点视频号、公众号卡片改为复制链接', () => {
+test('首页名家讲堂、学术动态点开进站内页；页内外链在小程序里改为复制链接', () => {
   assert.match(appSource, /function inMiniProgram\(\)[\s\S]*?miniProgram/);
-  assert.match(appSource, /onClick=\{openInWechat\(href\)\}/);
+  assert.match(appSource, /onTheoryItem\?\.\("名家讲堂"\)/);
+  assert.match(appSource, /onTheoryItem\?\.\("学术动态"\)/);
+  assert.match(appSource, /tangPanel === "学术动态" && doctor\.slug === "xiong-dajing" \? <XiongNewsSheet/);
+  assert.match(appSource, /openInWechat\(lecture\.href\)/);
+  assert.match(appSource, /openInWechat\(item\.href\)/);
   assert.match(appSource, /链接已复制，请粘贴到微信聊天中点开/);
 });
 
