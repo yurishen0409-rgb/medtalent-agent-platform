@@ -342,3 +342,8 @@ test('基本情况填全后，收起卡片不把对话区撑出屏幕（11-11 �
   const css = await read('../src/features/xiong-home/xiong-intake.css');
   assert.match(css, /\.xiong-chat, \.xc-log, \.xc-turn, \.xc-part \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 });
+
+test('求助提示放在悬浮进度按钮下方，不被遮挡', async () => {
+  const css = await read('../src/features/xiong-home/xiong-intake.css');
+  assert.match(css, /\.xc-float-wrap \+ \.xc-help \{ margin-top: 52px; \}/);
+});

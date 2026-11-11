@@ -340,3 +340,5 @@
 /* 修 11-11 线上问题：基本情况填全后，收起卡片那一行不换行，把整列撑宽，手机右侧被裁。网格列宽锁在屏宽内。 */
 .xiong-chat, .xc-log, .xc-turn, .xc-part { grid-template-columns: minmax(0, 1fr); }
 .xc-done { min-width: 0; max-width: 100%; }
+/* 求助提示整块露在悬浮进度按钮下方，不被遮挡（11-11 截图发现；红线：求助提示不弱化）。 */
+.xc-float-wrap + .xc-help { margin-top: 52px; }
