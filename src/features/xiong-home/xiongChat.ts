@@ -74,6 +74,13 @@ export const XIONG_CHAT_TEXT = {
   tongueHint: "自然光下伸出舌头，拍清舌面",
 } as const;
 
+// 只教“怎么答”的提示句：答完就从聊天记录里收起，只留问题和回答，免得挤占窗口（本人 11-11 定）。
+export const XIONG_HINT_LINES: ReadonlySet<string> = new Set([
+  XIONG_CHAT_TEXT.gate, XIONG_CHAT_TEXT.basic, XIONG_CHAT_TEXT.complaintHint, XIONG_CHAT_TEXT.confirmHint,
+  XIONG_CHAT_TEXT.prefilled, XIONG_CHAT_TEXT.tongueHint, XIONG_CHAT_TEXT.autoSaved, XIONG_CHAT_TEXT.multi, "可多选，鼻子已先帮您选上。",
+]);
+export const xiongAnsweredLines = (lines: readonly string[]) => lines.filter(line => !XIONG_HINT_LINES.has(line));
+
 const partOpening = (part: number) => `第${"一二三"[part]}部分：${XIONG_CHAT_PARTS[part]}（共三部分）。`;
 
 const TAG_PROMPTS: Record<string, string> = {

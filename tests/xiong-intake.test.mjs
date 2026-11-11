@@ -311,3 +311,16 @@ test('11-11 反馈：标题“健康问答”加熊老头像；分类一类一�
   assert.equal(xiongChipLabel('因季节变化诱发'), '季节变化');
   assert.equal(xiongChipLabel('鼻塞'), '鼻塞');
 });
+
+test('答完的题，聊天记录只留问题和回答，“先选哪方面”等提示句收起（本人 11-11 定，防挤占窗口）', async () => {
+  const { xiongAnsweredLines, XIONG_HINT_LINES } = await import('../src/features/xiong-home/xiongChat.ts');
+  const steps = buildXiongChatSteps();
+  const gate = steps.find(step => step.kind === 'gate');
+  assert.ok(gate.lines.includes(XIONG_CHAT_TEXT.gate));
+  assert.ok(!xiongAnsweredLines(gate.lines).includes(XIONG_CHAT_TEXT.gate));
+  assert.ok(xiongAnsweredLines(gate.lines).length > 0, '问题本身保留');
+  const all = new Set(steps.flatMap(step => step.lines));
+  for (const hint of XIONG_HINT_LINES) assert.ok(all.has(hint) || Object.values(XIONG_CHAT_TEXT).includes(hint), hint);
+  const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
+  assert.match(chat, /xiongAnsweredLines\(s\.lines\)/);
+});

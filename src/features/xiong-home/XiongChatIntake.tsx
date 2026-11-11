@@ -3,7 +3,7 @@ import { ArrowLeftIcon, CameraIcon, CaretRightIcon, CheckIcon, MicrophoneIcon, S
 import { createWavRecorder } from "../../lib/wavRecorder";
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, stepId, toggleXiongChip, xiongAnswerText,
-  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, xiongChipLabel, type XiongChatAnswers, type XiongChatStep,
+  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, xiongChipLabel, xiongAnsweredLines, type XiongChatAnswers, type XiongChatStep,
   XIONG_AREAS, XIONG_SURROUNDINGS, XIONG_OCCUPATIONS, XIONG_EDUCATION, XIONG_UNSURE, applyXiongPrefill, xiongBasicLine, xiongVocabulary, XIONG_TALK_GUIDE,
 } from "./xiongChat";
 import { researchId, removeTonguePhoto, saveTonguePhoto, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
@@ -544,7 +544,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
           {open && turns.map(([s, i]) => {
         const shown = xiongAnswerText(s, answers);
         return <div className="xc-turn" key={stepId(s)}>
-          <Bot lines={s.kind === "scale" ? [...s.lines, SCREEN.items[s.item].text] : s.lines} />
+          <Bot lines={s.kind === "scale" ? [...xiongAnsweredLines(s.lines), SCREEN.items[s.item].text] : xiongAnsweredLines(s.lines)} />
           {shown && <div className="xc-me">{answerNumber(s, answers) !== null && <em>{answerNumber(s, answers)}</em>}<span>{shown}</span></div>}
           {shown === "已跳过" && i === step - 1 && <Bot lines={[XIONG_CHAT_TEXT.skipped]} />}
         </div>;
