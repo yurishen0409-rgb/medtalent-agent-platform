@@ -117,9 +117,11 @@ test('聊天式健康问答：三部分顺序、引导语短句、保留鼻腔�
 
 test('互斥项清掉本组其他项，跳过记为缺失，量表缺题标未完成', () => {
   let chips = toggleXiongChip([], '二便', '便溏');
-  chips = toggleXiongChip(chips, '二便', '二便正常');
-  assert.deepEqual(chips, ['二便正常']);
-  assert.deepEqual(toggleXiongChip(chips, '二便', '尿黄'), ['尿黄']);
+  chips = toggleXiongChip(chips, '二便', '大便正常');
+  assert.deepEqual(chips, ['大便正常']);
+  assert.deepEqual(toggleXiongChip(chips, '二便', '尿黄'), ['大便正常', '尿黄'], '大便正常只管大便题');
+  assert.deepEqual(toggleXiongChip(['大便正常', '尿黄'], '二便', '小便正常'), ['大便正常', '小便正常']);
+  assert.deepEqual(toggleXiongChip(['大便正常', '小便正常'], '二便', '便溏'), ['小便正常', '便溏']);
   const answers = { ...emptyXiongChatAnswers(), basic: { sex: '女' }, chips: ['鼻塞', '呼吸困难'], screen: [2, 1, null, null], skipped: ['scale-2'] };
   const scale = buildXiongChatSteps().find(step => step.kind === 'scale' && step.item === 2);
   assert.equal(xiongAnswerText(scale, answers), '已跳过');
@@ -154,11 +156,12 @@ test('头面部图：选部位在症状四题之前，只问点到的部位；�
   assert.equal(xiongAnswerText(steps[at], { ...base, regions: [0, 3] }), '鼻、头、眼、颈');
 });
 
-test('二便拆成大便、小便：选“二便正常”就不再问小便', () => {
+test('二便拆成大便、小便，“正常”也拆成大便正常、小便正常，两题都问（本人 11-11 定）', () => {
   const steps = buildXiongChatSteps().filter(step => (step.kind === 'gate' || (step.kind === 'tags' && step.cat === undefined)) && XIONG_TCM_GROUPS[step.group].title === '二便');
   assert.deepEqual(steps.map(step => step.block), [0, 1]);
   const base = emptyXiongChatAnswers();
-  assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['二便正常'] })), [true, false]);
+  assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['大便正常'] })), [true, true]);
+  assert.ok(!XIONG_TCM_GROUPS.find(group => group.title === '二便').chips.includes('二便正常'));
   assert.deepEqual(steps.map(step => isXiongStepActive(step, { ...base, chips: ['便溏'] })), [true, true]);
 });
 

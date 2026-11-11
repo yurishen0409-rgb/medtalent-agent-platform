@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CaretRightIcon, CheckIcon, PencilSimpleIcon, ShieldCheckIcon } from "@phosphor-icons/react";
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, stepId, toggleXiongChip, xiongAnswerText,
-  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_DECADES, XIONG_REGIONS, isXiongStepActive, xiongStepChips, XIONG_EXCLUSIVE_CHIPS, type XiongChatAnswers, type XiongChatStep,
+  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_DECADES, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, type XiongChatAnswers, type XiongChatStep,
 } from "./xiongChat";
 import { researchId, XIONG_BASIC_FIELDS, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
 
@@ -302,7 +302,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
       case "tags": {
         const group = XIONG_TCM_GROUPS[s.group];
         const chips = xiongStepChips(s);
-        const exclusive = chips.includes(XIONG_EXCLUSIVE_CHIPS[group.title]) ? XIONG_EXCLUSIVE_CHIPS[group.title] : undefined;
+        const exclusive = xiongExclusiveIn(group.title, chips);
         const count = chips.filter(chip => answers.chips.includes(chip)).length;
         const ordered = exclusive ? [exclusive, ...chips.filter(chip => chip !== exclusive)] : chips;
         return <>
@@ -325,7 +325,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         });
         const chooseExit = () => commit(v => {
           const rest = v.chips.filter(chip => !all.includes(chip));
-          const chips = XIONG_EXCLUSIVE_CHIPS[group.title] === follow.exit ? toggleXiongChip(rest, group.title, follow.exit!) : [...rest, follow.exit!];
+          const chips = xiongExclusiveIn(group.title, all) === follow.exit ? toggleXiongChip(rest, group.title, follow.exit!) : [...rest, follow.exit!];
           return { ...v, chips, gates: { ...v.gates, [id]: [] } };
         }, follow.exit);
         // 取消的分类，它下面已选的条目一并清掉。

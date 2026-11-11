@@ -12,7 +12,8 @@ export const XIONG_LIVING = ["城市", "乡镇", "农村", "潮湿", "干燥", "
 export const XIONG_DECADES = [1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010] as const;
 
 // 整组互斥项：选它会清掉本组其他项（用模版里已有的条目，不新增“以上均无”）。
-export const XIONG_EXCLUSIVE_CHIPS: Record<string, string> = { 诱因: "无明显原因诱发", 二便: "二便正常", 情志: "情绪正常" };
+// 二便的“正常”拆成大便正常、小便正常，各管各的一题（本人 11-11 定，原表是一条“二便正常”）。
+export const XIONG_EXCLUSIVE_CHIPS: Record<string, readonly string[]> = { 诱因: ["无明显原因诱发"], 二便: ["大便正常", "小便正常"], 情志: ["情绪正常"] };
 
 // 大组按部位、类别拆成几道小题，一道题一小块（条目原文不变；分块名待医生看）。
 export const XIONG_CHIP_BLOCKS: Record<string, { title: string; prompt: string; chips: readonly string[] }[]> = {
@@ -31,10 +32,10 @@ export const XIONG_CHIP_BLOCKS: Record<string, { title: string; prompt: string; 
     { title: "饮食口渴", prompt: "胃口和口渴情况怎么样？", chips: ["饮食正常", "多食善饥", "反酸嘈杂", "纳呆", "纳可", "纳差", "厌食", "厌油腻", "易饥饿", "饥不欲食", "口干欲饮", "口渴不欲饮", "喜冷饮", "喜热饮"] },
     { title: "睡眠", prompt: "夜里睡得怎么样？", chips: ["睡眠正常", "纳眠一般", "纳差眠可", "纳可眠差", "眠浅", "多梦", "易醒", "早醒", "入睡困难", "嗜睡"] },
   ],
-  // 二便拆成大便、小便两题（本人 11-10 定）；“二便正常”放在大便题第一项，选了它就不再问小便。
+  // 二便拆成大便、小便两题（本人 11-10 定）；11-11 起“正常”也拆开：大便题有“大便正常”，小便题有“小便正常”，两题都问。
   二便: [
-    { title: "大便", prompt: "先说大便：顺畅吗？成形吗？", chips: ["二便正常", "大便黏", "大便干结", "便溏", "稀水样便", "泡沫样便", "大便前半段干后半段稀", "便后腹胀腹痛减轻", "大便带有血丝", "溏结不调", "完谷不化"] },
-    { title: "小便", prompt: "再说小便，有哪些情况？", chips: ["小便短赤", "尿频", "尿急", "尿痛", "尿黄", "尿清长"] },
+    { title: "大便", prompt: "先说大便：顺畅吗？成形吗？", chips: ["大便正常", "大便黏", "大便干结", "便溏", "稀水样便", "泡沫样便", "大便前半段干后半段稀", "便后腹胀腹痛减轻", "大便带有血丝", "溏结不调", "完谷不化"] },
+    { title: "小便", prompt: "再说小便，有哪些情况？", chips: ["小便正常", "小便短赤", "尿频", "尿急", "尿痛", "尿黄", "尿清长"] },
   ],
 };
 
@@ -138,12 +139,16 @@ export const stepId = (step: XiongChatStep) =>
     : step.kind === "gate" ? `gate-${step.group}${blockSuffix(step)}`
     : step.kind === "scale" ? `scale-${step.item}` : step.kind;
 
-// 多选标签：点互斥项清掉本组其他项；点其他项清掉互斥项。
+// 这一题里的互斥项（“正常”类）；没有返回 undefined。
+export const xiongExclusiveIn = (groupTitle: string, chips: readonly string[]) => (XIONG_EXCLUSIVE_CHIPS[groupTitle] ?? []).find(chip => chips.includes(chip));
+
+// 多选标签：点互斥项清掉同一题其他项；点其他项清掉同一题的互斥项。分块的组按块算“同一题”。
 export function toggleXiongChip(chips: readonly string[], groupTitle: string, chip: string) {
-  const exclusive = XIONG_EXCLUSIVE_CHIPS[groupTitle];
-  const group = XIONG_TCM_GROUPS.find(item => item.title === groupTitle)?.chips ?? [];
+  const blocks = XIONG_CHIP_BLOCKS[groupTitle];
+  const scope = blocks?.find(block => block.chips.includes(chip))?.chips ?? XIONG_TCM_GROUPS.find(item => item.title === groupTitle)?.chips ?? [];
+  const exclusive = xiongExclusiveIn(groupTitle, scope);
   if (chips.includes(chip)) return chips.filter(item => item !== chip);
-  if (chip === exclusive) return [...chips.filter(item => !group.includes(item)), chip];
+  if (chip === exclusive) return [...chips.filter(item => !scope.includes(item)), chip];
   return [...chips.filter(item => item !== exclusive), chip];
 }
 
@@ -245,7 +250,6 @@ export function isXiongStepActive(step: XiongChatStep, answers: XiongChatAnswers
 function blockActive(step: { group: number; block?: number }, answers: XiongChatAnswers) {
   if (step.block === undefined) return true;
   const title = XIONG_TCM_GROUPS[step.group].title;
-  if (title === "二便") return step.block === 0 || !answers.chips.includes(XIONG_EXCLUSIVE_CHIPS.二便);
   if (title !== "症状") return true;
   if (!answers.regions || answers.skipped.includes("regions")) return true;
   return answers.regions.includes(step.block);
@@ -286,7 +290,7 @@ export const XIONG_FOLLOWUPS: Record<string, XiongFollowup> = {
     { name: "饥饿、反酸", chips: ["易饥饿", "多食善饥", "饥不欲食", "反酸嘈杂"] },
     { name: "口渴、喝水", chips: ["口干欲饮", "口渴不欲饮", "喜冷饮", "喜热饮"] },
   ] },
-  "二便/大便": { exit: "二便正常", cats: [
+  "二便/大便": { exit: "大便正常", cats: [
     { name: "干稀情况", chips: ["大便干结", "便溏", "稀水样便", "溏结不调", "大便前半段干后半段稀"] },
     { name: "其他情况", chips: ["大便黏", "泡沫样便", "完谷不化", "便后腹胀腹痛减轻", "大便带有血丝"] },
   ] },
