@@ -17,6 +17,7 @@ import { generateAgentDrafts, generateContentDraft, optimizeAgentPrompt, modelSe
 import { assertSourceScopeAvailable, normalizeAgent, normalizeContent, normalizeDocumentApproval, normalizeDocumentBatchReview, normalizeDocumentDeletion, normalizeDocumentReindex, normalizeSource, PlatformError, MAX_FILE_BYTES, now, textField, validateSlug } from "./domain.mjs";
 import { ChatServiceError, generateChatReply, generateChatReplyStream, detectChatCrisis, classifyTangQuestion } from "./chat-core.mjs";
 import { registerSpeechRoutes } from "./speech-routes.mjs";
+import { registerXiongIntakeRoutes } from "./xiong-intake-routes.mjs";
 import { validateRuntimeConfig } from "./runtime-config.mjs";
 import { acquirePlatformInstanceLeaseSync } from "./file-lease.mjs";
 import { credentialValues, safeOutputCode, safeOutputText } from "./output-safety.mjs";
@@ -555,6 +556,7 @@ export async function createPlatformApp({ env = process.env, dataDir, seedDoctor
     }
   }));
   registerSpeechRoutes(app, { env, limit, fetchImpl, database, knowledge, viewer });
+  registerXiongIntakeRoutes(app, { env, limit, fetchImpl });
 
   app.use("/api", (_req, res) => res.status(404).json({ error: "接口不存在。", code: "NOT_FOUND" }));
   const staticRoot = path.resolve(staticDir || path.join(root, "dist"));

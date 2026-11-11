@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CaretRightIcon, CheckIcon, PencilSimpleIcon, ShieldCheckIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CameraIcon, CaretRightIcon, CheckIcon, MicrophoneIcon, ShieldCheckIcon, StopIcon } from "@phosphor-icons/react";
+import { createWavRecorder } from "../../lib/wavRecorder";
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, stepId, toggleXiongChip, xiongAnswerText,
-  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_DECADES, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, type XiongChatAnswers, type XiongChatStep,
+  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, type XiongChatAnswers, type XiongChatStep,
+  XIONG_AREAS, XIONG_SURROUNDINGS, XIONG_OCCUPATIONS, XIONG_EDUCATION, XIONG_UNSURE, applyXiongPrefill, xiongBasicLine, xiongVocabulary,
 } from "./xiongChat";
-import { researchId, XIONG_BASIC_FIELDS, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
+import { researchId, removeTonguePhoto, saveTonguePhoto, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
 
 const STEPS = buildXiongChatSteps();
 const SCREEN = XIONG_SCALES.find(scale => scale.id === "screen")!;
@@ -12,8 +14,8 @@ const SCREEN = XIONG_SCALES.find(scale => scale.id === "screen")!;
 const CONSENT = "我了解：本表只用于整理就诊资料，供医生参考。";
 
 type Draft = { step: number; answers: XiongChatAnswers };
-// v4：11-11 加了两层追问，题序变了，旧草稿不再沿用。
-const draftKey = (slug: string) => `xiong-chat-draft-v4:${slug}`;
+// v5：11-11 基本情况改卡片、加自述和舌象，题序变了，旧草稿不再沿用。
+const draftKey = (slug: string) => `xiong-chat-draft-v5:${slug}`;
 function readDraft(slug: string): Draft | null {
   try {
     const value = JSON.parse(window.localStorage.getItem(draftKey(slug)) ?? "null");
@@ -69,13 +71,12 @@ function inkAt(event: React.PointerEvent) {
 // 回答气泡里的编号：单选题、量表题显示所选的序号（与答题按钮一致）。
 function answerNumber(step: XiongChatStep, answers: XiongChatAnswers) {
   if (step.kind === "scale") { const answer = answers.screen[step.item]; return answer === null || answer === undefined ? null : answer + 1; }
-  if (step.kind === "choice") { const index = step.options.indexOf(answers.basic[step.key] ?? ""); return index >= 0 ? index + 1 : null; }
   return null;
 }
 
-function Option({ index, label, on, onClick, delay }: { index: number | "other"; label: string; on?: boolean; onClick: () => void; delay: number }) {
+function Option({ index, label, on, onClick, delay }: { index: number; label: string; on?: boolean; onClick: () => void; delay: number }) {
   return <button type="button" className={`xc-op${on ? " is-on" : ""}`} aria-pressed={on} style={{ animationDelay: `${delay}ms` }} onClick={onClick}>
-    <b>{index === "other" ? <PencilSimpleIcon size={14} /> : index + 1}</b><span>{label}</span>
+    <b>{index + 1}</b><span>{label}</span>
     {on ? <CheckIcon className="xc-arrow" size={16} weight="bold" /> : <CaretRightIcon className="xc-arrow" size={16} />}
   </button>;
 }
@@ -89,26 +90,109 @@ function TextAnswer({ placeholder, multiline, initial, onDone }: { placeholder: 
   </div>;
 }
 
-function YearAnswer({ onDone }: { onDone: (year: string) => void }) {
-  const [decade, setDecade] = useState<number | null>(null);
-  const now = new Date().getFullYear();
-  if (decade === null) return <div className="xc-grid xc-grid-4">{XIONG_DECADES.map(d => <button type="button" key={d} className="xc-cell" onClick={() => setDecade(d)}>{d} 年代</button>)}</div>;
-  return <>
-    <div className="xc-grid xc-grid-5">{Array.from({ length: 10 }, (_, i) => decade + i).filter(year => year <= now).map(year => <button type="button" key={year} className="xc-cell" onClick={() => onDone(String(year))}>{year}</button>)}</div>
-    <button type="button" className="xc-link" onClick={() => setDecade(null)}>‹ 重选年代</button>
-  </>;
+// 基本情况卡片：从底部弹出，一屏填完，都可以空着（本人 11-11 同意草图）。鼻腔宽大原因改由医生填写。
+function Seg({ options, value, onChange, multi }: { options: readonly string[]; value: string[]; onChange: (value: string[]) => void; multi?: boolean }) {
+  return <div className="xc-seg">{options.map(option => {
+    const on = value.includes(option);
+    return <button type="button" key={option} className={on ? "is-on" : ""} aria-pressed={on}
+      onClick={() => onChange(on ? value.filter(item => item !== option) : multi ? [...value, option] : [option])}>{option}{on && " ✓"}</button>;
+  })}</div>;
 }
 
-function NumberAnswer({ unit, min, max, onDone }: { unit: string; min: number; max: number; onDone: (value: string) => void }) {
-  const [value, setValue] = useState("");
-  const number = Number(value);
-  const valid = value !== "" && number >= min && number <= max;
-  const press = (key: string) => setValue(current => key === "删" ? current.slice(0, -1) : (current + key).replace(/^0+/, "").slice(0, 3));
-  return <div className="xc-number">
-    <output className="xc-display">{value || "—"} <small>{unit}</small></output>
-    {value !== "" && !valid && <p className="xc-hint">请输入 {min}–{max} 之间的数。</p>}
-    <div className="xc-grid xc-grid-3">{["1", "2", "3", "4", "5", "6", "7", "8", "9", "删", "0"].map(key => <button type="button" key={key} className="xc-cell xc-key" onClick={() => press(key)}>{key}</button>)}
-      <button type="button" className="xc-cell xc-key xc-primary" disabled={!valid} onClick={() => onDone(String(number))}>确定</button></div>
+function BasicForm({ initial, onDone }: { initial: XiongChatAnswers["basic"]; onDone: (basic: XiongChatAnswers["basic"]) => void }) {
+  const living = (initial.living ?? "").split("、").filter(Boolean);
+  const [b, setB] = useState({ ...initial });
+  const [area, setArea] = useState(living.filter(item => (XIONG_AREAS as readonly string[]).includes(item)));
+  const [around, setAround] = useState(living.filter(item => XIONG_SURROUNDINGS.some(s => s.name === item) || item === "都还好"));
+  const set = (key: keyof typeof b, value: string) => setB(current => ({ ...current, [key]: value }));
+  const one = (key: keyof typeof b) => (value: string[]) => set(key, value[0] ?? "");
+  const now = new Date().getFullYear();
+  const years = Array.from({ length: now - 1925 }, (_, i) => String(now - i));
+  const num = (value: string, min: number, max: number) => value === "" || (Number(value) >= min && Number(value) <= max);
+  const valid = num(b.height ?? "", 100, 220) && num(b.weight ?? "", 25, 200);
+  return <div className="xc-sheet" role="dialog" aria-label="填写基本情况">
+    <h3>基本情况（1/3）</h3>
+    <div className="xc-field"><span>性别</span><Seg options={["男", "女"]} value={b.sex ? [b.sex] : []} onChange={one("sex")} /></div>
+    <label className="xc-field"><span>出生年份</span><select value={b.birthYear ?? ""} onChange={event => set("birthYear", event.target.value)}><option value="">请选择</option>{years.map(year => <option key={year}>{year}</option>)}</select></label>
+    <div className="xc-field"><span>婚姻</span><Seg options={["已婚", "未婚", "其他"]} value={b.married ? [b.married] : []} onChange={one("married")} /></div>
+    <label className="xc-field"><span>职业</span><select value={b.occupation ?? ""} onChange={event => set("occupation", event.target.value)}><option value="">请选择</option>{[...XIONG_OCCUPATIONS, "其他"].map(item => <option key={item}>{item}</option>)}</select></label>
+    <label className="xc-field"><span>文化程度</span><select value={b.education ?? ""} onChange={event => set("education", event.target.value)}><option value="">请选择</option>{XIONG_EDUCATION.map(item => <option key={item}>{item}</option>)}</select></label>
+    <div className="xc-field"><span>身高体重</span><div className="xc-pair">
+      <label><input inputMode="numeric" maxLength={3} value={b.height ?? ""} onChange={event => set("height", event.target.value.replace(/\D/g, ""))} aria-label="身高（厘米）" /> cm</label>
+      <label><input inputMode="numeric" maxLength={3} value={b.weight ?? ""} onChange={event => set("weight", event.target.value.replace(/\D/g, ""))} aria-label="体重（公斤）" /> kg</label>
+    </div></div>
+    {!valid && <p className="xc-hint">身高请填 100–220，体重请填 25–200。</p>}
+    <div className="xc-field"><span>住在哪</span><Seg options={XIONG_AREAS} value={area} onChange={setArea} /></div>
+    <div className="xc-field"><span>周围环境</span><Seg multi options={[...XIONG_SURROUNDINGS.map(item => item.name), "都还好"]} value={around}
+      onChange={value => setAround(value.includes("都还好") && !around.includes("都还好") ? ["都还好"] : value.filter(item => item !== "都还好" || value.length === 1))} /></div>
+    <ul className="xc-field-hints">{XIONG_SURROUNDINGS.map(item => <li key={item.name}><b>{item.name}</b>：{item.hint}</li>)}</ul>
+    <button type="button" className="xc-primary" disabled={!valid} onClick={() => onDone({ ...b, living: [...area, ...around].join("、") })}>填好了，下一部分</button>
+  </div>;
+}
+
+// 先说哪里难受：按话筒说（转成文字后可改），或直接打字（本人 11-11 定）。
+function ComplaintAnswer({ initial, busy, onDone }: { initial: string; busy: boolean; onDone: (text: string) => void }) {
+  const [text, setText] = useState(initial);
+  const [recording, setRecording] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
+  const recorder = useMemo(() => createWavRecorder(setRecording), []);
+  useEffect(() => () => { void recorder.cancel(); }, [recorder]);
+  const toggle = async () => {
+    setError("");
+    if (!recording) { try { await recorder.start(); } catch (err) { setError(err instanceof Error ? err.message : "话筒暂时用不了，请打字。"); } return; }
+    try {
+      setWorking(true);
+      const wav = await recorder.stop();
+      if (!wav) return;
+      const response = await fetch("/api/asr", { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav, signal: AbortSignal.timeout(100_000) });
+      const data = await response.json().catch(() => ({})) as { text?: string; error?: string };
+      if (!response.ok || !data.text?.trim()) throw new Error(data.error || "没有听清，请再说一次或打字。");
+      setText(current => [current.trim(), data.text!.trim()].filter(Boolean).join("，"));
+    } catch (err) { setError(err instanceof Error ? err.message : "没有听清，请再说一次或打字。"); }
+    finally { setWorking(false); }
+  };
+  return <div className="xc-complaint">
+    <button type="button" className={`xc-mic${recording ? " is-on" : ""}`} disabled={working || busy} onClick={() => void toggle()} aria-label={recording ? "说完了" : "按一下开始说"}>
+      {recording ? <StopIcon size={26} weight="fill" /> : <MicrophoneIcon size={26} weight="duotone" />}
+      <span>{recording ? "说完了，点这里" : working ? "正在转成文字" : "按一下开始说"}</span>
+    </button>
+    {error && <p className="xc-hint">{error}</p>}
+    <textarea rows={4} maxLength={1000} value={text} placeholder="如：鼻子堵了半年，早晚打喷嚏，晚上睡不好" onChange={event => setText(event.target.value)} aria-label="哪里难受" />
+    <button type="button" className="xc-primary" disabled={!text.trim() || busy || recording || working} onClick={() => onDone(text.trim())}>{busy ? "正在整理，请稍候" : "说好了，下一步"}</button>
+  </div>;
+}
+
+// 舌象拍照：先勾授权，再拍；压缩到 720px 以内的 JPEG（本人 11-11 定要采集舌象）。
+async function compressPhoto(file: File) {
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = url; });
+    const scale = Math.min(1, 720 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
+    canvas.getContext("2d")!.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.8);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+function TongueAnswer({ initial, consented, onDone }: { initial?: string; consented: boolean; onDone: (photo: string, consentAt: string) => void }) {
+  const [agree, setAgree] = useState(consented);
+  const [photo, setPhoto] = useState(initial ?? "");
+  const [error, setError] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  const pick = async (file?: File) => {
+    if (!file) return;
+    setError("");
+    try { setPhoto(await compressPhoto(file)); } catch { setError("照片读取失败，请重拍。"); }
+  };
+  return <div className="xc-tongue">
+    <label className="xc-agree"><input type="checkbox" checked={agree} onChange={event => setAgree(event.target.checked)} /> 同意上传舌象照片，仅供医生面诊参考</label>
+    <input ref={input} type="file" accept="image/*" capture="user" hidden onChange={event => void pick(event.target.files?.[0])} />
+    {photo ? <img className="xc-tongue-photo" src={photo} alt="舌象照片预览" /> : null}
+    {error && <p className="xc-hint">{error}</p>}
+    <button type="button" className={photo ? "xc-link" : "xc-primary"} disabled={!agree} onClick={() => input.current?.click()}><CameraIcon size={18} /> {photo ? "重拍" : "拍舌头照片"}</button>
+    {photo && <button type="button" className="xc-primary" disabled={!agree} onClick={() => onDone(photo, new Date().toISOString())}>用这张，下一步</button>}
   </div>;
 }
 
@@ -153,13 +237,14 @@ function RegionsAnswer({ initial, onDone, onSkip }: { initial: number[]; onDone:
   </>;
 }
 
-export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onDoctor }: {
+export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onDoctor, onBack }: {
   slug: string;
   entries: readonly XiongEntry[];
   onSave: (entries: XiongEntry[]) => void;
   onRemove: (ids: string[]) => void;
   onScales: (start?: "scl90" | "rqlq") => void;
   onDoctor: () => void;
+  onBack?: () => void;
 }) {
   const initial = useMemo(() => readDraft(slug), [slug]);
   const last = useMemo(() => initial ? null : readReport(slug), [slug, initial]);
@@ -171,17 +256,19 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   const [menu, setMenu] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>(last?.savedIds ?? []);
   const [picked, setPicked] = useState<string | null>(null);
-  const [writing, setWriting] = useState(false);
   const [returnTo, setReturnTo] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [savedId, setSavedId] = useState<string | null>(last?.savedIds[0] ?? null);
+  const [busy, setBusy] = useState(false);
+  // 做完的部分收成一行，点开再看（本人 11-11 同意草图）。
+  const [expanded, setExpanded] = useState<number[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const current = STEPS[step] as XiongChatStep | undefined;
   const finished = step >= STEPS.length;
 
   useEffect(() => { if (!finished) writeDraft(slug, { step, answers }); }, [slug, step, answers, finished]);
   useEffect(() => {
-    setPicked(null); setWriting(false); setMenu(false);
+    setPicked(null); setMenu(false);
     const total = STEPS[step]?.lines.length ?? 0;
     const opening = isOpening(step);
     // 部分开头：每句前“正在输入”0.6 秒；其余多句的题：每句间隔 0.35 秒；单句题直接出。
@@ -208,14 +295,29 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     setPicked(choice);
     window.setTimeout(apply, wait(250));
   };
-  const setBasic = (key: string, value: string, choice?: string) => commit(value0 => ({ ...value0, basic: { ...value0.basic, [key]: value } }), choice);
+  // 自述整理：返回词表内条目，预先勾上；整理不出来就照常逐项问。
+  const submitComplaint = async (text: string) => {
+    setBusy(true);
+    let picked: string[] = [];
+    let alerts: string[] = [];
+    try {
+      const response = await fetch("/api/xiong/intake/extract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, vocab: xiongVocabulary() }), signal: AbortSignal.timeout(60_000) });
+      const data = await response.json().catch(() => ({})) as { chips?: string[]; alerts?: string[] };
+      if (response.ok) { picked = data.chips ?? []; alerts = data.alerts ?? []; }
+    } catch { /* 网络中断：照常逐项问 */ }
+    setBusy(false);
+    setNotice(picked.length ? `按您说的已先勾好 ${picked.length} 项，请逐项核对。` : "接下来逐项问您，请照实点选。");
+    commit(value => applyXiongPrefill({ ...value, complaint: text }, picked, alerts));
+  };
+  const markUnsure = (id: string, clear: readonly string[], extra?: (value: XiongChatAnswers) => XiongChatAnswers) =>
+    commit(value => { const next = { ...value, chips: value.chips.filter(chip => !clear.includes(chip)), unsure: [...(value.unsure ?? []).filter(item => item !== id), id] }; return extra ? extra(next) : next; }, XIONG_UNSURE);
+  const dropUnsure = (value: XiongChatAnswers, id: string) => value.unsure?.includes(id) ? { ...value, unsure: value.unsure.filter(item => item !== id) } : value;
   const skip = () => {
     if (!current) return;
     const id = stepId(current);
     setAnswers(value => ({
       ...value,
       skipped: [...value.skipped.filter(item => item !== id), id],
-      ...("key" in current && current.key !== "history" ? { basic: { ...value.basic, [current.key]: "" } } : {}),
       ...(current.kind === "scale" ? { screen: value.screen.map((answer, i) => i === current.item ? null : answer) } : {}),
     }));
     advance();
@@ -232,12 +334,16 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     const now = new Date().toISOString();
     const saved: XiongEntry[] = [];
     const basic = Object.fromEntries(Object.entries(answers.basic).filter(([, value]) => value));
-    if (answers.chips.length || answers.history.trim() || Object.keys(basic).length) {
-      saved.push({ id: researchId(), createdAt: now, kind: "intake", basic, chips: answers.chips, history: answers.history.trim() } satisfies XiongIntakeEntry);
+    if (answers.chips.length || answers.history.trim() || answers.complaint?.trim() || answers.tongue || Object.keys(basic).length) {
+      const id = researchId();
+      const tonguePhoto = Boolean(answers.tongue && saveTonguePhoto(id, answers.tongue));
+      saved.push({ id, createdAt: now, kind: "intake", basic, chips: answers.chips, history: answers.history.trim(),
+        ...(answers.complaint?.trim() ? { complaint: answers.complaint.trim() } : {}), ...(answers.unsure?.length ? { unsure: answers.unsure } : {}),
+        ...(tonguePhoto ? { tonguePhoto, tongueConsentAt: answers.tongueConsentAt } : {}) } satisfies XiongIntakeEntry);
     }
     const report = buildXiongChatReport(answers);
     if (answers.screen.every(answer => answer !== null)) {
-      const summary = report.blocks[2].lines[0].replace(" · ", "，");
+      const summary = report.blocks.find(block => block.title === "情志初筛")!.lines[0].replace(" · ", "，");
       saved.push({ id: researchId(), createdAt: now, kind: "scale", scale: "screen", answers: answers.screen as number[], summary } satisfies XiongScaleEntry);
     }
     if (saved.length) onSave(saved);
@@ -251,7 +357,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   // 共用手机时清掉这份报告和它存下的记录。
   const clearLocal = () => {
     if (!window.confirm("清除后本机将移除这份报告，请先复制保存。")) return;
-    if (savedIds.length) onRemove(savedIds);
+    if (savedIds.length) { savedIds.forEach(removeTonguePhoto); onRemove(savedIds); }
     restart();
     setNotice("本机记录已清除。");
   };
@@ -271,43 +377,26 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   };
 
   const renderAnswerZone = (s: XiongChatStep) => {
-    const options = (list: readonly string[], key: string, other?: boolean) => <>
-      {list.map((option, i) => <Option key={option} index={i} label={option} on={picked === option || (picked === null && answers.basic[key as keyof typeof answers.basic] === option)} delay={0} onClick={() => setBasic(key, option, option)} />)}
-      {other && (writing ? <TextAnswer placeholder="请写下您的情况" initial="" onDone={value => { setBasic(key, value); setNotice(XIONG_CHAT_TEXT.other); }} />
-        : <Option index="other" label="其他，我来写" delay={0} onClick={() => setWriting(true)} />)}
-    </>;
     switch (s.kind) {
-      case "choice": return options(s.options, s.key, s.other);
-      case "year": return <YearAnswer onDone={year => setBasic("birthYear", year)} />;
-      case "number": return <NumberAnswer key={s.key} unit={s.unit} min={s.min} max={s.max} onDone={value => setBasic(s.key, value)} />;
-      case "text": return <TextAnswer key={s.key} placeholder={s.placeholder} multiline={s.key === "history"} initial={s.key === "history" ? answers.history : answers.basic[s.key] ?? ""}
-        onDone={value => s.key === "history" ? commit(v => ({ ...v, history: value })) : setBasic(s.key, value)} />;
-      case "multi": {
-        const chosen = (answers.basic.living ?? "").split("、").filter(Boolean);
-        const toggle = (option: string) => setAnswers(v => ({ ...v, basic: { ...v.basic, living: (chosen.includes(option) ? chosen.filter(o => o !== option) : [...chosen, option]).join("、") } }));
-        return <>
-          <div className="xc-tags">{s.options.map(option => <button type="button" key={option} className={`xc-tag${chosen.includes(option) ? " is-on" : ""}`} aria-pressed={chosen.includes(option)} onClick={() => toggle(option)}><span>{option}</span>{chosen.includes(option) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>)}</div>
-          <button type="button" className="xc-primary xc-sticky" disabled={!chosen.length} onClick={advance}>{chosen.length ? <>选好了（已选 <span className="xc-count" key={chosen.length}>{chosen.length}</span> 项）</> : "请先选一项"}</button>
-        </>;
-      }
-      case "summary": return <>
-        <div className="xc-summary">{XIONG_BASIC_FIELDS.map(field => {
-          const at = STEPS.findIndex(item => "key" in item && item.key === field.key);
-          const shown = xiongAnswerText(STEPS[at], answers);
-          return <div key={field.key}><span>{field.label.replace(/（.*）/, "")}</span><b className={shown && shown !== "已跳过" ? "" : "is-empty"}>{shown ?? "未填写"}</b>
-            <button type="button" onClick={() => { setReturnTo(step); setStep(at); }}>改</button></div>;
-        })}</div>
-        <button type="button" className="xc-primary" onClick={advance}>核对好了，下一部分</button>
-      </>;
+      case "basic": return <BasicForm initial={answers.basic} onDone={basic => commit(v => ({ ...v, basic }))} />;
+      case "complaint": return <ComplaintAnswer initial={answers.complaint ?? ""} busy={busy} onDone={text => void submitComplaint(text)} />;
+      case "tongue": return <TongueAnswer initial={answers.tongue} consented={Boolean(answers.tongueConsentAt)} onDone={(tongue, at) => commit(v => ({ ...v, tongue, tongueConsentAt: at }))} />;
+      case "text": return <TextAnswer key={s.key} placeholder={s.placeholder} multiline initial={answers.history}
+        onDone={value => commit(v => ({ ...v, history: value }))} />;
       case "tags": {
         const group = XIONG_TCM_GROUPS[s.group];
         const chips = xiongStepChips(s);
         const exclusive = xiongExclusiveIn(group.title, chips);
         const count = chips.filter(chip => answers.chips.includes(chip)).length;
         const ordered = exclusive ? [exclusive, ...chips.filter(chip => chip !== exclusive)] : chips;
+        const id = stepId(s);
+        const unsureOn = picked === XIONG_UNSURE || Boolean(answers.unsure?.includes(id));
         return <>
-          <div className="xc-tags">{ordered.map(chip => <button type="button" key={chip} className={`xc-tag${chip === exclusive ? " is-exclusive" : ""}${answers.chips.includes(chip) ? " is-on" : ""}`} aria-pressed={answers.chips.includes(chip)}
-            onClick={() => setAnswers(v => ({ ...v, chips: toggleXiongChip(v.chips, group.title, chip) }))}><span>{chip}</span>{answers.chips.includes(chip) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>)}</div>
+          {chips.some(chip => answers.aiChips?.includes(chip)) && <p className="xc-prefill">{XIONG_CHAT_TEXT.prefilled}</p>}
+          <div className="xc-tags">
+            {s.cat === undefined && <button type="button" className={`xc-tag is-exclusive is-unsure${unsureOn ? " is-on" : ""}`} aria-pressed={unsureOn} onClick={() => markUnsure(id, chips)}><span>{XIONG_UNSURE}</span>{unsureOn && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>}
+            {ordered.map(chip => <button type="button" key={chip} className={`xc-tag${chip === exclusive ? " is-exclusive" : ""}${answers.chips.includes(chip) ? " is-on" : ""}`} aria-pressed={answers.chips.includes(chip)}
+            onClick={() => setAnswers(v => ({ ...dropUnsure(v, id), chips: toggleXiongChip(v.chips, group.title, chip) }))}><span>{chip}</span>{answers.chips.includes(chip) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>)}</div>
           <button type="button" className="xc-primary xc-sticky" onClick={count ? () => commit(v => v) : skip}>{count ? <>选好了（已选 <span className="xc-count" key={count}>{count}</span> 项）</> : "这组先跳过"}</button>
         </>;
       }
@@ -319,22 +408,29 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         const all = [...follow.cats.flatMap(cat => cat.chips), ...(follow.exit ? [follow.exit] : [])];
         const cats = answers.gates?.[id] ?? [];
         const exitOn = Boolean(follow.exit && answers.chips.includes(follow.exit));
-        const toggle = (cat: number) => setAnswers(v => {
+        const unsureOn = picked === XIONG_UNSURE || Boolean(answers.unsure?.includes(id));
+        const toggle = (cat: number) => setAnswers(v0 => {
+          const v = dropUnsure(v0, id);
           const list = v.gates?.[id] ?? [];
           return { ...v, chips: follow.exit ? v.chips.filter(chip => chip !== follow.exit) : v.chips, gates: { ...v.gates, [id]: list.includes(cat) ? list.filter(c => c !== cat) : [...list, cat].sort() } };
         });
-        const chooseExit = () => commit(v => {
+        const chooseExit = () => commit(v0 => {
+          const v = dropUnsure(v0, id);
           const rest = v.chips.filter(chip => !all.includes(chip));
           const chips = xiongExclusiveIn(group.title, all) === follow.exit ? toggleXiongChip(rest, group.title, follow.exit!) : [...rest, follow.exit!];
           return { ...v, chips, gates: { ...v.gates, [id]: [] } };
         }, follow.exit);
         // 取消的分类，它下面已选的条目一并清掉。
-        const confirm = () => commit(v => {
+        const confirm = () => commit(v0 => {
+          const v = dropUnsure(v0, id);
           const kept = new Set((v.gates?.[id] ?? []).flatMap(c => follow.cats[c].chips));
           return { ...v, chips: v.chips.filter(chip => !all.includes(chip) || kept.has(chip)) };
         });
         return <>
+          {all.some(chip => answers.aiChips?.includes(chip)) && <p className="xc-prefill">{XIONG_CHAT_TEXT.prefilled}</p>}
           <div className="xc-tags">
+            <button type="button" className={`xc-tag is-exclusive is-unsure${unsureOn ? " is-on" : ""}`} aria-pressed={unsureOn} onClick={() => markUnsure(id, all, v => ({ ...v, gates: { ...v.gates, [id]: [] } }))}>
+              <span>{XIONG_UNSURE}</span>{unsureOn && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>
             {follow.exit && <button type="button" className={`xc-tag is-exclusive${exitOn || picked === follow.exit ? " is-on" : ""}`} aria-pressed={exitOn} onClick={chooseExit}>
               <span>{follow.exit}</span>{(exitOn || picked === follow.exit) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>}
             {follow.cats.map((cat, c) => <button type="button" key={cat.name} className={`xc-tag${cats.includes(c) ? " is-on" : ""}`} aria-pressed={cats.includes(c)} onClick={() => toggle(c)}>
@@ -364,7 +460,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   return <div className="xiong-chat" aria-label="健康问答" onPointerDown={inkAt}>
     {/* 窗口头：结构仿问学窗口，用“预问诊助手”身份、竹青色、无头像，和问学区分开（本人 11-09 定）。 */}
     {/* 顶部只留标题和安全条；进度、稍后继续和“更多”收进右上角悬浮气泡（本人 11-11 定，草图见需求页第三十节）。 */}
-    <header className="xc-head"><h2>预问诊助手</h2></header>
+    <header className="xc-head">{onBack && <button type="button" className="xc-back" onClick={onBack}><ArrowLeftIcon size={16} /> 返回</button>}<h2>预问诊助手</h2></header>
     <div className="xc-safety"><ShieldCheckIcon size={15} weight="duotone" /> 整理病情供医生参考，急症请立即拨打 120</div>
     <div className="xc-float-wrap">
       <button type="button" className="xc-float" aria-expanded={menu} aria-haspopup="dialog"
@@ -387,17 +483,28 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         </div>
       </>}
     </div>
-    {report.flags.length > 0 && <div className="xc-help" role="alert">{report.flags.map(flag => <p key={flag}>{flag}</p>)}</div>}
+    {report.flags.length > 0 && <div className="xc-help" role="alert">{report.flags.flatMap(flag => flag.split(/\n+/)).map(line => <p key={line}>{line}</p>)}</div>}
 
     <div className="xc-log">
-      {STEPS.slice(0, Math.min(step, STEPS.length)).map((s, i) => !isXiongStepActive(s, answers) ? null : (() => {
+      {XIONG_CHAT_PARTS.map((name, p) => {
+        const done = finished || p < part;
+        const open = !done || expanded.includes(p);
+        const turns = STEPS.map((s, i) => [s, i] as const).filter(([s, i]) => s.part === p && i < Math.min(step, STEPS.length) && isXiongStepActive(s, answers));
+        if (!turns.length) return null;
+        const brief = p === 0 ? xiongBasicLine(answers.basic) || "未填写" : p === 1 ? `已记 ${answers.chips.length} 项${answers.tongue ? " · 已拍舌象" : ""}` : `已答 ${answers.screen.filter(answer => answer !== null).length}/4 题`;
+        return <div className="xc-part" key={name}>
+          {done && <button type="button" className="xc-done" aria-expanded={open} onClick={() => setExpanded(list => list.includes(p) ? list.filter(item => item !== p) : [...list, p])}>
+            <CheckIcon size={15} weight="bold" /> <b>{name}</b><span>{brief}</span><em>{open ? "收起" : "展开"} ›</em></button>}
+          {open && turns.map(([s, i]) => {
         const shown = xiongAnswerText(s, answers);
         return <div className="xc-turn" key={stepId(s)}>
           <Bot lines={s.kind === "scale" ? [...s.lines, SCREEN.items[s.item].text] : s.lines} />
           {shown && <div className="xc-me">{answerNumber(s, answers) !== null && <em>{answerNumber(s, answers)}</em>}<span>{shown}</span></div>}
           {shown === "已跳过" && i === step - 1 && <Bot lines={[XIONG_CHAT_TEXT.skipped]} />}
         </div>;
-      })())}
+          })}
+        </div>;
+      })}
       {current && <div className="xc-turn">
         {resumed && step === initial?.step && <Bot lines={[XIONG_CHAT_TEXT.resume]} />}
         <Bot lines={current.lines.slice(0, shown)} typing={typing && isOpening(step)} />
@@ -409,6 +516,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         <article className="xc-report" aria-label="就诊报告">
           <header><b>就诊报告</b><small>{new Date().toISOString().slice(5, 10)} · 供医生参考{savedId ? ` · ${savedId}` : ""}</small></header>
           {report.blocks.map(block => <section key={block.title}><h4>{block.title}</h4>{block.lines.map(line => <p key={line}>{line}</p>)}</section>)}
+          {answers.tongue && <figure className="xc-report-photo"><img src={answers.tongue} alt="舌象照片" /><figcaption>舌象照片</figcaption></figure>}
           {report.advice.map(line => <p className="xc-advice" key={line}>{line}</p>)}
         </article>
         <button type="button" className="xc-primary" onClick={() => void copy()}>复制报告全文</button>
@@ -426,8 +534,9 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     {notice && <p className="xc-notice" role="status">{notice}</p>}
     {current && <nav className="xc-foot" aria-label="答题操作">
       <button type="button" disabled={step === 0} onClick={back}>‹ 改上一题</button>
-      {current.kind !== "summary" && current.kind !== "consent" && <button type="button" onClick={skip}>跳过</button>}
+      {current.kind !== "consent" && <button type="button" onClick={skip}>跳过</button>}
     </nav>}
-    <p className="xiong-privacy">记录保存在本设备；微信登录后同步到你的账户（存于本平台服务器）。自填记录和量表结果不会发给 AI。</p>
+    {/* 本人 11-11 定：处理方式不写在界面上；只说清存放位置。 */}
+    <p className="xiong-privacy">记录保存在本设备；微信登录后同步到你的账户（存于本平台服务器）。语音和照片上传到本平台服务器整理。</p>
   </div>;
 }

@@ -1074,3 +1074,9 @@ export async function* generateChatReplyStream({ doctor, message, history, healt
   if (finalReply) yield { type: "delta", text: finalReply };
   yield { type: "done", model: publicModel, crisis: false };
 }
+
+// 熊老健康问答“先说哪里难受”：患者自述里出现急症、自伤等风险时，返回与问学相同的求助原文（本人 11-11 定）。
+export function xiongIntakeSafetyReply(text) {
+  const risk = detectCrisisRisk(text) || detectMedicalSafetyRisk(text);
+  return risk?.category ? safetyReplyFor({ slug: "xiong-dajing" }, risk.category) || null : null;
+}

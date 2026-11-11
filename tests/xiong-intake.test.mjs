@@ -7,6 +7,7 @@ import {
 } from '../src/features/xiong-home/xiongIntake.ts';
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, isXiongStepActive, toggleXiongChip, xiongAnswerText, XIONG_CHAT_TEXT, XIONG_REGIONS,
+  applyXiongPrefill, stepId, XIONG_UNSURE_NOTE, XIONG_SURROUNDINGS,
 } from '../src/features/xiong-home/xiongChat.ts';
 
 const scale = id => XIONG_SCALES.find(item => item.id === id);
@@ -88,7 +89,7 @@ test('导出 CSV 和就诊要点只含填写内容', () => {
 test('熊老导航、页面和账户同步已接入', async () => {
   const app = await read('../src/pages/DoctorApp.tsx');
   for (const label of ['"健康问答"', '"学说"']) assert.ok(app.includes(label), label);
-  assert.match(app, /<XiongHealthPanel slug=\{doctor.slug\} \/>/);
+  assert.match(app, /<XiongHealthPanel slug=\{doctor.slug\} onHome=\{\(\) => switchTab\("home"\)\} \/>/);
   const workspace = await read('../src/features/xiong-home/XiongWorkspace.tsx');
   assert.match(workspace, /\[\["chat", "问答填写"\], \["scales", "量表测试"\]\]/);
   assert.doesNotMatch(workspace, /"表格版"/);
@@ -102,10 +103,12 @@ test('熊老导航、页面和账户同步已接入', async () => {
   assert.match(await read('../server/wechat-bridge.mjs'), /arraySections = new Set\(\[[^\]]*"xiong-intake-v1"/);
 });
 
-test('聊天式健康问答：三部分顺序、引导语短句、保留鼻腔宽大原因', () => {
+test('聊天式健康问答：三部分顺序、引导语短句；鼻腔宽大原因改由医生填写（本人 11-11 定）', () => {
   const steps = buildXiongChatSteps();
   assert.deepEqual([...new Set(steps.map(step => step.part))], [0, 1, 2]);
-  assert.ok(steps.some(step => step.key === 'widenCause'));
+  assert.ok(!steps.some(step => step.key === 'widenCause'));
+  assert.deepEqual(steps.filter(step => ['basic', 'complaint', 'tongue'].includes(step.kind)).map(step => [step.kind, step.part]), [['basic', 0], ['complaint', 1], ['tongue', 1]]);
+  assert.ok(XIONG_BASIC_FIELDS.some(field => field.key === 'widenCause'), '医生端仍保留鼻腔宽大原因');
   const firstLayer = steps.filter(step => step.kind === 'gate' || (step.kind === 'tags' && step.cat === undefined));
   assert.equal(firstLayer.length, 14, '诱因、特征、情志各一题；症状 4 题，寒热汗 2 题，饮食睡眠 3 题，二便 2 题（大便、小便）');
   assert.equal(steps.filter(step => step.kind === 'gate').length, 8, '超过 8 项的 8 组改两层追问');
@@ -126,7 +129,7 @@ test('互斥项清掉本组其他项，跳过记为缺失，量表缺题标未�
   const scale = buildXiongChatSteps().find(step => step.kind === 'scale' && step.item === 2);
   assert.equal(xiongAnswerText(scale, answers), '已跳过');
   const report = buildXiongChatReport(answers, null, new Date('2026-11-09T02:00:00Z'));
-  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '情志初筛', 'SCL-90']);
+  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '舌象', '情志初筛', 'SCL-90']);
   assert.match(report.text, /PHQ-2：3 \/ 6 · GAD-2：未完成（已答 0\/2）/);
   assert.match(report.text, /SCL-90】未填写/);
   assert.ok(report.advice.length === 1, 'PHQ-2 ≥3 给出进一步评估建议');
@@ -217,13 +220,13 @@ test('两层追问（本人 11-11 定，草稿版，分类名待陈主任确认�
   assert.equal(xiongAnswerText(gate, { ...base, chips: ['无明显原因诱发'], gates: { [id]: [] } }), '无明显原因诱发');
   const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
   assert.match(chat, /case "gate"/);
-  assert.match(chat, /xiong-chat-draft-v4/, '题序变了，草稿换新版本号');
+  assert.match(chat, /xiong-chat-draft-v5/, '题序变了，草稿换新版本号');
 });
 
 test('开场一句一句出、助手气泡去句末句号、点按有墨晕（本人 11-11 定）', async () => {
   const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
   const css = await read('../src/features/xiong-home/xiong-intake.css');
-  assert.equal(buildXiongChatSteps()[0].lines.length, 4);
+  assert.equal(buildXiongChatSteps()[0].lines.length, 3, '欢迎、第一部分、填写卡片三句一句一句出');
   assert.match(chat, /current\.lines\.slice\(0, shown\)/);
   assert.match(chat, /replace\(\/。\$\/, ""\)/);
   assert.match(chat, /onPointerDown=\{inkAt\}/);
@@ -236,4 +239,40 @@ test('标题字体子集覆盖熊大经页面所有标题字（本人 11-11 发�
   const chars = new Set(await read('../public/assets/fonts/xiong/title-chars.txt'));
   const titles = ['熊大经名中医传承智能体', '学说理论', '我的', '正在加载智能体', '智能体不存在或已下线', '暂时无法加载智能体', '传承经典 · 守正创新', '名医大德', '名家讲堂', '学术动态', '问学举隅', '看学说 · 问学', '求诊', '求学', '就诊报告', '预问诊助手', '健康问答', '量表测试', '医家小传'];
   for (const title of titles) for (const char of title.replace(/[\s·]/g, '')) assert.ok(chars.has(char), `${title} 缺“${char}”`);
+});
+
+test('先说哪里难受：只按词表预先勾选，推出部位和两层追问分类；求助提示进报告（本人 11-11 定）', () => {
+  const base = emptyXiongChatAnswers();
+  const next = applyXiongPrefill({ ...base, complaint: '鼻子堵，耳鸣，晚上盗汗' }, ['鼻塞', '耳鸣', '盗汗', '编造的条目'], ['请立即拨打 120']);
+  assert.deepEqual(next.chips, ['鼻塞', '耳鸣', '盗汗']);
+  assert.deepEqual(next.aiChips, ['鼻塞', '耳鸣', '盗汗']);
+  assert.deepEqual(next.regions, [0, 2], '耳鸣带出“耳”部位');
+  const steps = buildXiongChatSteps();
+  const nose = steps.find(step => step.kind === 'gate' && step.block === 0 && step.part === 1 && stepId(step).startsWith('gate-1'));
+  assert.deepEqual(next.gates[stepId(nose)], [0], '鼻塞所在分类预先选上');
+  const report = buildXiongChatReport(next);
+  assert.match(report.text, /患者自述：鼻子堵，耳鸣，晚上盗汗/);
+  assert.ok(report.flags.includes('请立即拨打 120'));
+  const both = applyXiongPrefill(base, ['大便正常', '便溏']);
+  assert.deepEqual(both.chips, ['便溏'], '互斥规则照旧');
+});
+
+test('“不清楚”：报告单独标出提示医生询问；居住环境带白话说明', () => {
+  const steps = buildXiongChatSteps();
+  const sleep = steps.find(step => step.kind === 'gate' && stepId(step) === 'gate-4-2');
+  assert.ok(sleep, '睡眠是两层追问的第一层');
+  const answers = { ...emptyXiongChatAnswers(), unsure: [stepId(sleep)] };
+  assert.equal(xiongAnswerText(sleep, answers), '不清楚');
+  assert.match(buildXiongChatReport(answers).text, new RegExp(`饮食睡眠（睡眠）：${XIONG_UNSURE_NOTE}`));
+  assert.deepEqual(XIONG_SURROUNDINGS.map(item => item.name), ['潮湿', '干燥', '近工厂或马路']);
+  assert.ok(XIONG_SURROUNDINGS.every(item => item.hint.length <= 12));
+});
+
+test('舌象照片：先勾授权再拍，照片另存本机，记录只记“已拍”，界面不写处理方式', async () => {
+  const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
+  assert.match(chat, /disabled=\{!agree\}/);
+  assert.match(chat, /saveTonguePhoto\(id, answers\.tongue\)/);
+  assert.doesNotMatch(chat, /不会发给 AI|大模型|人工智能/);
+  const intake = await read('../src/features/xiong-home/xiongIntake.ts');
+  assert.match(intake, /tonguePhoto\?: boolean/);
 });

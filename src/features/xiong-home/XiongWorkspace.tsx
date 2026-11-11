@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDoctorLocalState } from "../../hooks/useDoctorLocalState";
 import {
-  entriesToCsv, intakeRedFlags, intakeVisitNotes, intakeSummary, normalizeXiongEntries, researchId, scoreXiongScale, turbinateGroup,
+  entriesToCsv, intakeRedFlags, intakeVisitNotes, intakeSummary, normalizeXiongEntries, removeTonguePhoto, researchId, scoreXiongScale, turbinateGroup,
   RQLQ_ACTIVITIES, XIONG_BASIC_FIELDS, XIONG_DOCTOR_GROUPS, XIONG_INTAKE_SECTION, XIONG_PATIENT_SCALES, XIONG_SCALES, XIONG_TCM_GROUPS, XIONG_TURBINATE_SCORES,
   type XiongBasicKey, type XiongEntry, type XiongIntakeEntry, type XiongScale, type XiongScaleEntry,
 } from "./xiongIntake";
@@ -108,7 +108,7 @@ export function XiongIntakePanel({ slug }: { slug: string }) {
       {intakes.length ? intakes.map(entry => <article className="xiong-entry" key={entry.id}>
         <b>{entry.id}</b><small>{new Date(entry.createdAt).toLocaleString("zh-CN")}</small>
         <p>{intakeSummary(entry)}</p>
-        <div className="xiong-entry-actions"><button type="button" onClick={() => void copyNotes(intakeVisitNotes(entry)).then(copied => setNotice(copied ? `已复制 ${entry.id} 的就诊要点，可粘贴给医生。` : "复制失败，请长按记录文字手动复制。"))}>复制就诊要点</button><button type="button" className="danger" onClick={() => window.confirm("确定删除这条记录吗？") && setEntries(current => normalizeXiongEntries(current).filter(item => item.id !== entry.id))}>删除</button></div>
+        <div className="xiong-entry-actions"><button type="button" onClick={() => void copyNotes(intakeVisitNotes(entry)).then(copied => setNotice(copied ? `已复制 ${entry.id} 的就诊要点，可粘贴给医生。` : "复制失败，请长按记录文字手动复制。"))}>复制就诊要点</button><button type="button" className="danger" onClick={() => { if (!window.confirm("确定删除这条记录吗？")) return; removeTonguePhoto(entry.id); setEntries(current => normalizeXiongEntries(current).filter(item => item.id !== entry.id)); }}>删除</button></div>
       </article>) : <p className="xiong-empty">还没有自填记录。</p>}
     </section>
   </div>;
@@ -169,7 +169,7 @@ export function XiongScalePanel({ slug, initial }: { slug: string; initial?: Xio
 
 // 健康问答：患者端只有“问答填写 / 量表测试”两个入口；原表格版收为医生端小入口（本人 11-09 定），
 // 正式版应放进医生后台、登录后查看，见需求页第二十六节“医生端”。
-export function XiongHealthPanel({ slug }: { slug: string }) {
+export function XiongHealthPanel({ slug, onHome }: { slug: string; onHome?: () => void }) {
   const [view, setView] = useState<"chat" | "scales" | "doctor">("chat");
   const [scaleStart, setScaleStart] = useState<XiongScale["id"] | undefined>();
   const [entries, setEntries] = useXiongEntries(slug);
@@ -181,9 +181,11 @@ export function XiongHealthPanel({ slug }: { slug: string }) {
     {view === "chat" && <XiongChatIntake slug={slug} entries={entries}
       onSave={saved => setEntries(current => [...saved, ...normalizeXiongEntries(current)].slice(0, 200))}
       onRemove={ids => setEntries(current => normalizeXiongEntries(current).filter(entry => !ids.includes(entry.id)))}
-      onScales={start => { setScaleStart(start); setView("scales"); }} onDoctor={() => setView("doctor")} />}
+      onScales={start => { setScaleStart(start); setView("scales"); }} onDoctor={() => setView("doctor")} onBack={onHome} />}
     {/* 答题时页面只留答题按钮；量表测试、医生填写入口收进问答头部的“更多”（需求页第二十九节，本人 11-10 定）。 */}
     {view === "scales" && <>
+      {/* 量表页顶部加返回（本人 11-11 同意草图）。 */}
+      <div className="xiong-doctor-bar"><button type="button" onClick={() => { setScaleStart(undefined); setView("chat"); }}>‹ 返回问答</button><b>量表测试</b></div>
       <XiongScalePanel key={scaleStart ?? "list"} slug={slug} initial={scaleStart} />
       <nav className="xiong-quick" aria-label="健康问答快捷入口">
         {([["chat", "问答填写"], ["scales", "量表测试"]] as const).map(([id, label]) => <button key={id} type="button" aria-pressed={view === id} className={view === id ? "is-on" : ""} onClick={() => { setScaleStart(undefined); setView(id); }}>{label}</button>)}
