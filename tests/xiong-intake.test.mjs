@@ -337,3 +337,8 @@ test('急症条和求助卡字号不缩小（求助提示不弱化）', async ()
   for (const m of css.matchAll(/\.xc-safety \{[^}]*font-size: (\d+)px/g)) assert.ok(Number(m[1]) >= 13, `急症条 ${m[1]}px`);
   for (const m of css.matchAll(/\.xc-help p \{[^}]*font-size: (\d+)px/g)) assert.ok(Number(m[1]) >= 15, `求助卡 ${m[1]}px`);
 });
+
+test('基本情况填全后，收起卡片不把对话区撑出屏幕（11-11 线上发现）', async () => {
+  const css = await read('../src/features/xiong-home/xiong-intake.css');
+  assert.match(css, /\.xiong-chat, \.xc-log, \.xc-turn, \.xc-part \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+});
