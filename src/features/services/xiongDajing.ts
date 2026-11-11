@@ -9,7 +9,7 @@ export const xiongQuestions = ["什么是鼻五度辨证？", "“形神合一�
 export function xiongDemoProfile<T extends { slug: string }>(doctor: T): T {
   return doctor.slug === "xiong-dajing" ? { ...doctor,
     name: xiongAgentName,
-    specialty: "鼻病与情志多中心数据集 · 理论渊源与辨治",
+    specialty: "鼻病与情志 · 理论渊源与辨治",
     intro: `${xiongIdentity}${xiongBoundary}`,
     quickQuestions: xiongQuestions,
     accent: "#2F5553", accentSoft: "#FFFCF6",

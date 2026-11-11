@@ -38,7 +38,7 @@ const profile = (
 export const doctorProfiles: DoctorProfile[] = [
   profile({
     slug: "xiong-dajing", name: xiongAgentName, portrait: "", portraitPosition: "50% 6%", hospital: "成都中医药大学", department: "待确认", title: "全国名中医",
-    specialty: "鼻病与情志多中心数据集 · 理论渊源与辨治", accent: "#2F5553", accentSoft: "#FFFCF6",
+    specialty: "鼻病与情志 · 理论渊源与辨治", accent: "#2F5553", accentSoft: "#FFFCF6",
     intro: `${xiongIdentity}${xiongBoundary}`,
     quickQuestions: xiongQuestions,
     topics: ["胆肺假说", "鼻五度辨证", "鼻全息论", "鼻腔宽大与情志"],

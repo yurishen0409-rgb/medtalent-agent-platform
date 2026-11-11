@@ -397,7 +397,7 @@ test('existing preview profiles adopt Xiong demo facts without changing other ag
   const view = xiongDemoProfile(saved);
   assert.equal(view.name, xiongAgentName);
   assert.deepEqual(view.quickQuestions, xiongQuestions);
-  assert.match(view.specialty, /鼻病与情志多中心数据集/);
+  assert.equal(view.specialty, "鼻病与情志 · 理论渊源与辨治", "本人 11-11 定：副标题去掉“多中心数据集”");
   assert.equal(saved.name, '熊大经');
   assert.deepEqual(saved.quickQuestions, ['旧问题']);
   assert.equal(view.content, saved.content);
