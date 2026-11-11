@@ -174,3 +174,14 @@ test('界面里没有“入组研究以知情同意书为准”', async () => {
     assert.doesNotMatch(source.replace(/\/\/.*$/gm, ''), /入组研究|知情同意书为准/, file);
   }
 });
+
+test('顶部改为悬浮气泡：进度、稍后继续、更多收进气泡；安全条原文保留；分段开头提醒已自动保存', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/features/xiong-home/XiongChatIntake.tsx', import.meta.url), 'utf8');
+  assert.match(source, /className="xc-float"/);
+  assert.match(source, /整理病情供医生参考，急症请立即拨打 120/);
+  assert.doesNotMatch(source, /className="xc-parts"/);
+  for (const label of ['稍后继续', '量表测试', '医生填写入口', '重新开始']) assert.match(source, new RegExp(`>${label}</button>`));
+  const opens = buildXiongChatSteps().filter(step => step.lines.includes(XIONG_CHAT_TEXT.autoSaved));
+  assert.deepEqual(opens.map(step => step.part), [1, 2]);
+});

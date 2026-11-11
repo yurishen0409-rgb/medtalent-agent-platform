@@ -44,6 +44,8 @@ export const XIONG_CHAT_TEXT = {
   skipped: "好的，这一项先跳过，咱们看下一题。",
   multi: "这一组可多选，选好后点确认。",
   saved: "进度已存好，下次打开可接着填。",
+  // 稍后继续收进悬浮气泡后，每部分开头提醒一句（本人 11-11 同意悬浮气泡草图）。
+  autoSaved: "进度已自动存好，可随时离开。",
   rest: "前一组已记好，请歇口气再继续。",
   done: "辛苦您了，您的回答已记好。",
   report: "就诊报告整理好了，面诊时请拿给医生看。",
@@ -91,7 +93,7 @@ export function buildXiongChatSteps(): XiongChatStep[] {
     { kind: "text", part: 0, key: "widenCause", placeholder: "如 鼻部手术史", lines: ["如果知道鼻腔宽大的原因，可写在这里。"] },
     { kind: "summary", part: 0, lines: ["基本情况已记好，请核对一下。", "哪项需要改，点右边的“改”。"] },
     ...XIONG_TCM_GROUPS.flatMap((group, index): XiongChatStep[] => {
-      const first = index === 0 ? [partOpening(1)] : [];
+      const first = index === 0 ? [XIONG_CHAT_TEXT.autoSaved, partOpening(1)] : [];
       const blocks = XIONG_CHIP_BLOCKS[group.title];
       if (!blocks) return [{ kind: "tags", part: 1, group: index, lines: [...first, TAG_PROMPTS[group.title] ?? `${group.title}方面有哪些情况？`, ...(index === 0 ? [XIONG_CHAT_TEXT.multi] : [])] }];
       const steps = blocks.map((block, b): XiongChatStep => ({ kind: "tags", part: 1, group: index, block: b, lines: [...first, block.prompt] }));
@@ -101,7 +103,7 @@ export function buildXiongChatSteps(): XiongChatStep[] {
     { kind: "text", part: 1, key: "history", placeholder: "如：鼻塞三年，秋冬加重", lines: ["起病多久、怎么变化的，可补充几句。"] },
     ...screen.items.map((_, index): XiongChatStep => ({
       kind: "scale", part: 2, item: index,
-      lines: index === 0 ? [XIONG_CHAT_TEXT.rest, partOpening(2), "接下来几题，问问您心里的感受。"] : [],
+      lines: index === 0 ? [XIONG_CHAT_TEXT.rest, XIONG_CHAT_TEXT.autoSaved, partOpening(2), "接下来几题，问问您心里的感受。"] : [],
     })),
     { kind: "consent", part: 2, lines: [XIONG_CHAT_TEXT.done] },
   ];

@@ -299,21 +299,30 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
 
   return <div className="xiong-chat" aria-label="健康问答">
     {/* 窗口头：结构仿问学窗口，用“预问诊助手”身份、竹青色、无头像，和问学区分开（本人 11-09 定）。 */}
-    <header className="xc-head">
-      <div><h2>预问诊助手</h2><small><i aria-hidden="true" />诊前整理 · 交给医生参考</small></div>
-      {/* 头部用文字按钮（老人认不出“…”图标）；“重新开始”收进“更多”，点后再确认（本人 11-10 定）。 */}
-      {current && <button type="button" onClick={() => setNotice(XIONG_CHAT_TEXT.saved)}>稍后继续</button>}
-      <button type="button" aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu(open => !open)}>更多</button>
-      {menu && <div className="xc-menu" role="menu">
-        <button type="button" role="menuitem" onClick={() => { setMenu(false); onScales(); }}>量表测试</button>
-        <button type="button" role="menuitem" onClick={() => { setMenu(false); onDoctor(); }}>医生填写入口</button>
-        <button type="button" role="menuitem" onClick={() => { setMenu(false); if (window.confirm("重新开始将清空当前已填记录，确认重填吗？")) restart(); }}>重新开始</button>
-      </div>}
-    </header>
+    {/* 顶部只留标题和安全条；进度、稍后继续和“更多”收进右上角悬浮气泡（本人 11-11 定，草图见需求页第三十节）。 */}
+    <header className="xc-head"><h2>预问诊助手</h2></header>
     <div className="xc-safety"><ShieldCheckIcon size={15} weight="duotone" /> 整理病情供医生参考，急症请立即拨打 120</div>
-    <ol className="xc-parts" aria-label={`第 ${part + 1} 部分 / 共 3 部分`}>
-      {XIONG_CHAT_PARTS.map((name, i) => <li key={name} className={finished || i < part ? "is-done" : i === part ? "is-current" : ""}>{name}{(finished || i < part) && " ✓"}</li>)}
-    </ol>
+    <div className="xc-float-wrap">
+      <button type="button" className="xc-float" aria-expanded={menu} aria-haspopup="dialog"
+        aria-label={finished ? "三部分已完成，查看进度和更多操作" : `第 ${part + 1} 部分 ${XIONG_CHAT_PARTS[part]}，共 3 部分，查看进度和更多操作`}
+        onClick={() => setMenu(open => !open)}>
+        <span className="xc-ring" style={{ "--p": `${Math.round((finished ? 1 : step / STEPS.length) * 100)}%` } as React.CSSProperties} aria-hidden="true"><i /></span>
+        {finished ? "已完成 ✓" : `${XIONG_CHAT_PARTS[part]} ${part + 1}/3`} ›
+      </button>
+      {menu && <>
+        <button type="button" className="xc-dim" aria-label="收起" onClick={() => setMenu(false)} />
+        <div className="xc-panel" role="dialog" aria-label="进度和更多操作">
+          <ol>{XIONG_CHAT_PARTS.map((name, i) => {
+            const state = finished || i < part ? "is-done" : i === part ? "is-current" : "";
+            return <li key={name} className={state}><span aria-hidden="true">{state === "is-done" ? "✓" : i + 1}</span>{name}{state === "is-current" && <small>进行中</small>}</li>;
+          })}</ol>
+          {current && <button type="button" className="xc-panel-main" onClick={() => { setMenu(false); setNotice(XIONG_CHAT_TEXT.saved); }}>稍后继续</button>}
+          <button type="button" onClick={() => { setMenu(false); onScales(); }}>量表测试</button>
+          <button type="button" onClick={() => { setMenu(false); onDoctor(); }}>医生填写入口</button>
+          <button type="button" onClick={() => { setMenu(false); if (window.confirm("重新开始将清空当前已填记录，确认重填吗？")) restart(); }}>重新开始</button>
+        </div>
+      </>}
+    </div>
     {report.flags.length > 0 && <div className="xc-help" role="alert">{report.flags.map(flag => <p key={flag}>{flag}</p>)}</div>}
 
     <div className="xc-log">
