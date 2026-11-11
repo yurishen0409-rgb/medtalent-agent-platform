@@ -49,7 +49,7 @@ export const XIONG_CHIP_BLOCKS: Record<string, { title: string; prompt: string; 
 };
 
 export const XIONG_CHAT_TEXT = {
-  welcome: "您好，我是预问诊助手，看病前先帮您理一理身体情况，请点下方按钮作答",
+  welcome: "您好，这里是健康问答，看病前先帮您理一理身体情况，请点下方按钮作答",
   resume: "欢迎回来，咱们接着刚才的进度继续。",
   skipped: "好的，这一项先跳过，咱们看下一题。",
   multi: "这一组可多选，选好后点确认。",
@@ -284,6 +284,8 @@ export function isXiongStepActive(step: XiongChatStep, answers: XiongChatAnswers
   if (step.cat !== undefined) {
     if (!blockActive(step, answers)) return false;
     const gateId = stepId({ kind: "gate", part: step.part, lines: [], group: step.group, block: step.block });
+    // 只有一项的分类：第一层选了就记下，不再出第二屏。
+    if (followOf(step).cats[step.cat].chips.length === 1) return false;
     return Boolean(answers.gates?.[gateId]?.includes(step.cat)) && !answers.skipped.includes(gateId);
   }
   return blockActive(step, answers);
@@ -301,46 +303,72 @@ function blockActive(step: { group: number; block?: number }, answers: XiongChat
 // 一组超过 8 项时：先问“哪方面”（可多选，分类名只用来分组，不写进报告），再只问选中的分类，每屏最多 6 项。
 // 条目原文不改、一个不少（测试核对）。exit 是该组原有的“正常”类条目，单独一行，选了就跳过本组。
 export type XiongFollowup = { exit?: string; cats: { name: string; chips: readonly string[] }[] };
+// 11-11 本人反馈“分类过于宽泛”：一类只放一件事，名字用患者的话；只有一项的分类，选了就直接记下，不再出第二屏。
 export const XIONG_FOLLOWUPS: Record<string, XiongFollowup> = {
   "症状/鼻部": { cats: [
     { name: "鼻塞", chips: ["鼻塞", "晨晚鼻塞加重", "鼻塞呈单侧明显", "交替鼻塞流涕"] },
-    { name: "流涕、喷嚏、鼻痒", chips: ["反复流涕", "反复喷嚏", "打喷嚏时连续多次才停", "鼻痒时需反复用手捏鼻"] },
-    { name: "嗅觉、味觉", chips: ["嗅觉下降", "味觉下降"] },
-    { name: "呼吸、打鼾", chips: ["呼吸不畅", "呼吸困难", "眠时打鼾"] },
+    { name: "流鼻涕", chips: ["反复流涕"] },
+    { name: "打喷嚏、鼻痒", chips: ["反复喷嚏", "打喷嚏时连续多次才停", "鼻痒时需反复用手捏鼻"] },
+    { name: "闻味、尝味变差", chips: ["嗅觉下降", "味觉下降"] },
+    { name: "喘气费劲", chips: ["呼吸不畅", "呼吸困难"] },
+    { name: "睡觉打鼾", chips: ["眠时打鼾"] },
   ] },
   诱因: { exit: "无明显原因诱发", cats: [
-    { name: "季节、天气、受寒", chips: ["因季节变化诱发", "因天气变化诱发", "因受寒诱发", "因怕风诱发"] },
-    { name: "情绪、劳累", chips: ["因情绪波动诱发", "因工作压力大诱发", "因工作不顺心诱发", "因劳累诱发"] },
-    { name: "饮食、过敏", chips: ["因不洁饮食诱发", "因辛辣饮食诱发", "因饮酒过度诱发", "因过敏原接触诱发"] },
+    { name: "天气、季节变化", chips: ["因季节变化诱发", "因天气变化诱发"] },
+    { name: "受凉、吹风", chips: ["因受寒诱发", "因怕风诱发"] },
+    { name: "心情、工作压力", chips: ["因情绪波动诱发", "因工作压力大诱发", "因工作不顺心诱发"] },
+    { name: "劳累", chips: ["因劳累诱发"] },
+    { name: "吃喝", chips: ["因不洁饮食诱发", "因辛辣饮食诱发", "因饮酒过度诱发"] },
+    { name: "接触过敏的东西", chips: ["因过敏原接触诱发"] },
   ] },
   特征: { cats: [
-    { name: "什么时候明显", chips: ["夜间加重", "说话时明显", "活动时疼痛加重", "弯腰加重", "服药后缓解"] },
-    { name: "感觉和起病", chips: ["闷胀样痛", "胀痛", "钝痛", "慢性起病"] },
+    { name: "夜里加重", chips: ["夜间加重"] },
+    { name: "说话、活动、弯腰时加重", chips: ["说话时明显", "活动时疼痛加重", "弯腰加重"] },
+    { name: "吃药后缓解", chips: ["服药后缓解"] },
+    { name: "疼痛的感觉", chips: ["闷胀样痛", "胀痛", "钝痛"] },
+    { name: "慢慢起病", chips: ["慢性起病"] },
   ] },
   "寒热汗/寒热": { cats: [
-    { name: "怕冷、怕热", chips: ["畏寒", "畏热", "恶风", "恶寒", "寒热往来"] },
+    { name: "怕冷、怕风", chips: ["畏寒", "恶风", "恶寒"] },
+    { name: "怕热", chips: ["畏热"] },
+    { name: "一阵冷一阵热", chips: ["寒热往来"] },
     { name: "发热", chips: ["发热", "低热", "午后低热", "夜间发热", "潮热"] },
-    { name: "手脚心冷热", chips: ["手心热", "手心冷", "脚心热", "脚心冷"] },
+    { name: "手脚心发热", chips: ["手心热", "脚心热"] },
+    { name: "手脚心发凉", chips: ["手心冷", "脚心冷"] },
   ] },
   "寒热汗/出汗": { exit: "无汗", cats: [
-    { name: "出汗方式", chips: ["自汗", "盗汗", "汗多", "汗黏", "冷汗"] },
-    { name: "头身部位", chips: ["头汗", "颈部汗", "上身汗", "胸部汗", "背部汗"] },
-    { name: "手脚", chips: ["手汗", "脚汗"] },
+    { name: "白天或睡着时出汗", chips: ["自汗", "盗汗"] },
+    { name: "汗多、汗黏或冷汗", chips: ["汗多", "汗黏", "冷汗"] },
+    { name: "头颈、胸背出汗", chips: ["头汗", "颈部汗", "上身汗", "胸部汗", "背部汗"] },
+    { name: "手脚出汗", chips: ["手汗", "脚汗"] },
   ] },
   "饮食睡眠/饮食口渴": { exit: "饮食正常", cats: [
     { name: "胃口", chips: ["纳可", "纳差", "纳呆", "厌食", "厌油腻"] },
-    { name: "饥饿、反酸", chips: ["易饥饿", "多食善饥", "饥不欲食", "反酸嘈杂"] },
+    { name: "饿的感觉", chips: ["易饥饿", "多食善饥", "饥不欲食"] },
+    { name: "反酸、烧心", chips: ["反酸嘈杂"] },
     { name: "口渴、喝水", chips: ["口干欲饮", "口渴不欲饮", "喜冷饮", "喜热饮"] },
   ] },
   "二便/大便": { exit: "大便正常", cats: [
-    { name: "干稀情况", chips: ["大便干结", "便溏", "稀水样便", "溏结不调", "大便前半段干后半段稀"] },
-    { name: "其他情况", chips: ["大便黏", "泡沫样便", "完谷不化", "便后腹胀腹痛减轻", "大便带有血丝"] },
+    { name: "大便干还是稀", chips: ["大便干结", "便溏", "稀水样便", "溏结不调", "大便前半段干后半段稀"] },
+    { name: "大便黏、有泡沫或带血", chips: ["大便黏", "泡沫样便", "大便带有血丝"] },
+    { name: "大便有食物残渣", chips: ["完谷不化"] },
+    { name: "便后肚子舒服些", chips: ["便后腹胀腹痛减轻"] },
   ] },
   "饮食睡眠/睡眠": { exit: "睡眠正常", cats: [
-    { name: "入睡和醒", chips: ["入睡困难", "眠浅", "易醒", "早醒", "多梦", "嗜睡"] },
-    { name: "吃睡合述", chips: ["纳眠一般", "纳差眠可", "纳可眠差"] },
+    { name: "入睡和夜里醒", chips: ["入睡困难", "眠浅", "易醒", "早醒", "多梦"] },
+    { name: "白天犯困", chips: ["嗜睡"] },
+    { name: "胃口和睡眠合起来说", chips: ["纳眠一般", "纳差眠可", "纳可眠差"] },
   ] },
 };
+
+// 按钮上的短写法（本人 11-11 定“减少口字”）：题目已写明是嘴里的味道、什么诱发，按钮只写关键字；
+// 记录和报告仍用原表原文。
+const MOUTH_CHIPS = new Set<string>(XIONG_CHIP_BLOCKS.饮食睡眠.find(block => block.title === "口味")?.chips ?? []);
+export function xiongChipLabel(chip: string) {
+  if (MOUTH_CHIPS.has(chip)) return chip.slice(1);
+  const cause = /^因(.+)诱发$/.exec(chip);
+  return cause ? cause[1] : chip;
+}
 
 function followKey(groupTitle: string, blockTitle?: string) { return blockTitle ? `${groupTitle}/${blockTitle}` : groupTitle; }
 

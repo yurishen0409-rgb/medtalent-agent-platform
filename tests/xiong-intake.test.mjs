@@ -213,10 +213,11 @@ test('两层追问（本人 11-11 定，草稿版，分类名待陈主任确认�
   assert.ok(level2.every(step => step.lines.every(line => [...line].length <= 25)));
   const base = emptyXiongChatAnswers();
   const id = stepId(gate);
-  assert.deepEqual(level2.map(step => isXiongStepActive(step, { ...base, gates: { [id]: [0, 2] } })), [true, false, true]);
+  assert.deepEqual(level2.map(step => isXiongStepActive(step, { ...base, gates: { [id]: [0, 2] } })), [true, false, true, false, false, false]);
+  assert.ok(level2.filter(step => followOf(step).cats[step.cat].chips.length === 1).every(step => !isXiongStepActive(step, { ...base, gates: { [id]: [0, 1, 2, 3, 4, 5] } })), '只有一项的分类，第一层选了就记下，不出第二屏');
   assert.ok(level2.every(step => !isXiongStepActive(step, base)), '没选分类就不问第二层');
   assert.ok(level2.every(step => !isXiongStepActive(step, { ...base, gates: { [id]: [0] }, skipped: [id] })), '第一层跳过，第二层也不问（记缺失）');
-  assert.equal(xiongAnswerText(gate, { ...base, gates: { [id]: [1] } }), '情绪、劳累');
+  assert.equal(xiongAnswerText(gate, { ...base, gates: { [id]: [1] } }), '受凉、吹风');
   assert.equal(xiongAnswerText(gate, { ...base, chips: ['无明显原因诱发'], gates: { [id]: [] } }), '无明显原因诱发');
   const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
   assert.match(chat, /case "gate"/);
@@ -295,4 +296,18 @@ test('自述说清楚的题后面不再问；核对页可“再问一遍”；�
   assert.ok(isXiongStepActive(taste, next), '没说到的题照常问');
   const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
   assert.match(chat, /已说到 · 再问一遍/);
+});
+
+test('11-11 反馈：标题“健康问答”加熊老头像；分类一类一件事；按钮上少写“口”“因…诱发”，报告仍用原文', async () => {
+  const { XIONG_FOLLOWUPS, xiongChipLabel } = await import('../src/features/xiong-home/xiongChat.ts');
+  const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
+  assert.doesNotMatch(chat, /<h2>预问诊助手<\/h2>/);
+  assert.match(chat, /<h2>健康问答<\/h2>/);
+  assert.match(chat, /portraits\/xiong-dajing\.jpg/);
+  assert.doesNotMatch(XIONG_CHAT_TEXT.welcome, /预问诊/);
+  for (const follow of Object.values(XIONG_FOLLOWUPS)) for (const cat of follow.cats) assert.doesNotMatch(cat.name, /其他|合述/, cat.name);
+  assert.equal(xiongChipLabel('口苦'), '苦');
+  assert.equal(xiongChipLabel('口干欲饮'), '口干欲饮', '只改口味题');
+  assert.equal(xiongChipLabel('因季节变化诱发'), '季节变化');
+  assert.equal(xiongChipLabel('鼻塞'), '鼻塞');
 });

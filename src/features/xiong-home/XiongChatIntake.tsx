@@ -3,7 +3,7 @@ import { ArrowLeftIcon, CameraIcon, CaretRightIcon, CheckIcon, MicrophoneIcon, S
 import { createWavRecorder } from "../../lib/wavRecorder";
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, stepId, toggleXiongChip, xiongAnswerText,
-  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, type XiongChatAnswers, type XiongChatStep,
+  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, xiongChipLabel, type XiongChatAnswers, type XiongChatStep,
   XIONG_AREAS, XIONG_SURROUNDINGS, XIONG_OCCUPATIONS, XIONG_EDUCATION, XIONG_UNSURE, applyXiongPrefill, xiongBasicLine, xiongVocabulary, XIONG_TALK_GUIDE,
 } from "./xiongChat";
 import { researchId, removeTonguePhoto, saveTonguePhoto, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
@@ -45,12 +45,26 @@ const wait = (ms: number) => reduceMotion() ? 0 : ms;
 
 // 助手气泡去掉句末句号（本人 11-11 定）；求助卡、报告正文不经过这里，原文不动。
 const plain = (line: string) => line.replace(/。$/, "");
-function Bot({ lines, typing }: { lines: string[]; typing?: boolean }) {
-  return <>
-    {lines.map((line, index) => <div className="xc-bot" key={`${index}-${line}`}>{plain(line)}</div>)}
-    {typing && <div className="xc-bot xc-typing" aria-label="正在输入"><i /><i /><i /></div>}
-  </>;
+// 熊老头像（本人 11-11 定加上；照片与首页同一张，来源见首页注明）。
+const XIONG_AVATAR = "/assets/doctors/portraits/xiong-dajing.jpg";
+function Avatar({ size }: { size: "head" | "chat" }) {
+  return <span className={`xc-ava is-${size}`} aria-hidden="true"><img src={XIONG_AVATAR} alt="" /></span>;
 }
+function Bot({ lines, typing }: { lines: string[]; typing?: boolean }) {
+  if (!lines.length && !typing) return null;
+  return <div className="xc-bot-row">
+    <Avatar size="chat" />
+    <div className="xc-bot-col">
+      {lines.map((line, index) => <div className="xc-bot" key={`${index}-${line}`}>{plain(line)}</div>)}
+      {typing && <div className="xc-bot xc-typing" aria-label="正在输入"><i /><i /><i /></div>}
+    </div>
+  </div>;
+}
+// 选项字少时一行多放几个，按钮跟着变小（本人 11-11 定）。
+const tagsClass = (labels: string[]) => {
+  const longest = Math.max(0, ...labels.map(label => [...label].length));
+  return `xc-tags${longest <= 2 ? " is-four" : longest <= 4 ? " is-three" : ""}`;
+};
 
 // 点按墨晕：在手指按下的位置晕开一圈浅竹青（减弱动态效果时不出）。
 function inkAt(event: React.PointerEvent) {
@@ -402,7 +416,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
                 const on = answers.chips.includes(chip);
                 const group = XIONG_TCM_GROUPS.find(g => g.chips.includes(chip))!;
                 return <button type="button" key={chip} className={`xc-tag${on ? " is-on" : ""}`} aria-pressed={on} onClick={() => setAnswers(v => ({ ...v, chips: toggleXiongChip(v.chips, group.title, chip) }))}>
-                  <span>{chip}</span>{on && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>;
+                  <span>{xiongChipLabel(chip)}</span>{on && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>;
               })}</div>
             </section>;
           })}
@@ -422,10 +436,10 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         const unsureOn = picked === XIONG_UNSURE || Boolean(answers.unsure?.includes(id));
         return <>
           {chips.some(chip => answers.aiChips?.includes(chip)) && <p className="xc-prefill">{XIONG_CHAT_TEXT.prefilled}</p>}
-          <div className="xc-tags">
+          <div className={tagsClass(ordered.map(xiongChipLabel))}>
             {s.cat === undefined && <button type="button" className={`xc-tag is-exclusive is-unsure${unsureOn ? " is-on" : ""}`} aria-pressed={unsureOn} onClick={() => markUnsure(id, chips)}><span>{XIONG_UNSURE}</span>{unsureOn && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>}
             {ordered.map(chip => <button type="button" key={chip} className={`xc-tag${chip === exclusive ? " is-exclusive" : ""}${answers.chips.includes(chip) ? " is-on" : ""}`} aria-pressed={answers.chips.includes(chip)}
-            onClick={() => setAnswers(v => ({ ...dropUnsure(v, id), chips: toggleXiongChip(v.chips, group.title, chip) }))}><span>{chip}</span>{answers.chips.includes(chip) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>)}</div>
+            onClick={() => setAnswers(v => ({ ...dropUnsure(v, id), chips: toggleXiongChip(v.chips, group.title, chip) }))}><span>{xiongChipLabel(chip)}</span>{answers.chips.includes(chip) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>)}</div>
           <button type="button" className="xc-primary xc-sticky" onClick={count ? () => commit(v => v) : skip}>{count ? <>选好了（已选 <span className="xc-count" key={count}>{count}</span> 项）</> : "这组先跳过"}</button>
         </>;
       }
@@ -452,8 +466,11 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         // 取消的分类，它下面已选的条目一并清掉。
         const confirm = () => commit(v0 => {
           const v = dropUnsure(v0, id);
-          const kept = new Set((v.gates?.[id] ?? []).flatMap(c => follow.cats[c].chips));
-          return { ...v, chips: v.chips.filter(chip => !all.includes(chip) || kept.has(chip)) };
+          const chosen = (v.gates?.[id] ?? []).map(c => follow.cats[c].chips);
+          const kept = new Set(chosen.flat());
+          // 只有一项的分类，选了就把这一项记下（不再出第二屏）。
+          const singles = chosen.filter(chips => chips.length === 1).map(chips => chips[0]);
+          return { ...v, chips: [...new Set([...v.chips.filter(chip => !all.includes(chip) || kept.has(chip)), ...singles])] };
         });
         return <>
           {all.some(chip => answers.aiChips?.includes(chip)) && <p className="xc-prefill">{XIONG_CHAT_TEXT.prefilled}</p>}
@@ -487,9 +504,9 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   };
 
   return <div className="xiong-chat" aria-label="健康问答" onPointerDown={inkAt}>
-    {/* 窗口头：结构仿问学窗口，用“预问诊助手”身份、竹青色、无头像，和问学区分开（本人 11-09 定）。 */}
+    {/* 窗口头：标题“健康问答”，加熊老头像（本人 11-11 定，替换 11-09 的“预问诊助手、无头像”）。 */}
     {/* 顶部只留标题和安全条；进度、稍后继续和“更多”收进右上角悬浮气泡（本人 11-11 定，草图见需求页第三十节）。 */}
-    <header className="xc-head">{onBack && <button type="button" className="xc-back" onClick={onBack}><ArrowLeftIcon size={16} /> 返回</button>}<h2>预问诊助手</h2></header>
+    <header className="xc-head">{onBack && <button type="button" className="xc-back" onClick={onBack}><ArrowLeftIcon size={16} /> 返回</button>}<Avatar size="head" /><h2>健康问答</h2></header>
     <div className="xc-safety"><ShieldCheckIcon size={15} weight="duotone" /> 整理病情供医生参考，急症请立即拨打 120</div>
     <div className="xc-float-wrap">
       <button type="button" className="xc-float" aria-expanded={menu} aria-haspopup="dialog"
