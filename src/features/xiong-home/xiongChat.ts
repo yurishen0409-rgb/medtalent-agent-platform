@@ -39,7 +39,7 @@ export const XIONG_CHIP_BLOCKS: Record<string, { title: string; prompt: string; 
 };
 
 export const XIONG_CHAT_TEXT = {
-  welcome: "您好，我是预问诊助手。看病前，先帮您把身体情况理一理。请点下方按钮作答。",
+  welcome: "您好，我是预问诊助手，看病前先帮您理一理身体情况，请点下方按钮作答",
   resume: "欢迎回来，咱们接着刚才的进度继续。",
   skipped: "好的，这一项先跳过，咱们看下一题。",
   multi: "这一组可多选，选好后点确认。",
@@ -53,6 +53,7 @@ export const XIONG_CHAT_TEXT = {
   scl90: "精力允许的话，可再做一份 90 题的心理自评。",
   next: "确诊变应性鼻炎的，可再做生存质量问卷。",
   other: "您补充的情况已记下，会写进报告。",
+  gate: "先选哪方面，可多选",
 } as const;
 
 const partOpening = (part: number) => `第${"一二三"[part]}部分：${XIONG_CHAT_PARTS[part]}（共三部分）。`;
@@ -74,7 +75,8 @@ export type XiongChatStep =
   | { kind: "multi"; part: number; lines: string[]; key: "living"; options: readonly string[] }
   | { kind: "text"; part: number; lines: string[]; key: "widenCause" | "history"; placeholder: string }
   | { kind: "summary"; part: number; lines: string[] }
-  | { kind: "tags"; part: number; lines: string[]; group: number; block?: number }
+  | { kind: "tags"; part: number; lines: string[]; group: number; block?: number; cat?: number }
+  | { kind: "gate"; part: number; lines: string[]; group: number; block?: number }
   | { kind: "scale"; part: number; lines: string[]; item: number }
   | { kind: "regions"; part: number; lines: string[] }
   | { kind: "consent"; part: number; lines: string[] };
@@ -95,8 +97,15 @@ export function buildXiongChatSteps(): XiongChatStep[] {
     ...XIONG_TCM_GROUPS.flatMap((group, index): XiongChatStep[] => {
       const first = index === 0 ? [XIONG_CHAT_TEXT.autoSaved, partOpening(1)] : [];
       const blocks = XIONG_CHIP_BLOCKS[group.title];
-      if (!blocks) return [{ kind: "tags", part: 1, group: index, lines: [...first, TAG_PROMPTS[group.title] ?? `${group.title}方面有哪些情况？`, ...(index === 0 ? [XIONG_CHAT_TEXT.multi] : [])] }];
-      const steps = blocks.map((block, b): XiongChatStep => ({ kind: "tags", part: 1, group: index, block: b, lines: [...first, block.prompt] }));
+      if (!blocks) {
+        const prompt = TAG_PROMPTS[group.title] ?? `${group.title}方面有哪些情况？`;
+        const follow = XIONG_FOLLOWUPS[followKey(group.title)];
+        if (follow) return followSteps(index, undefined, [...first, prompt]);
+        return [{ kind: "tags", part: 1, group: index, lines: [...first, prompt, ...(index === 0 ? [XIONG_CHAT_TEXT.multi] : [])] }];
+      }
+      const steps = blocks.flatMap((block, b): XiongChatStep[] => XIONG_FOLLOWUPS[followKey(group.title, block.title)]
+        ? followSteps(index, b, [...first, block.prompt])
+        : [{ kind: "tags", part: 1, group: index, block: b, lines: [...first, block.prompt] }]);
       // 症状先在头面部图上点部位，只问点到的部位（本人 11-09 定）。
       return group.title === "症状" ? [{ kind: "regions", part: 1, lines: ["哪些部位难受？请在图上点选。", "可多选，鼻子已先帮您选上。"] }, ...steps] : steps;
     }),
@@ -116,12 +125,18 @@ export type XiongChatAnswers = {
   screen: (number | null)[];
   skipped: string[];
   regions?: number[];
+  // 两层追问第一层选了哪些分类（键是 gate 的 stepId）；选了“正常”项时为空数组。
+  gates?: Record<string, number[]>;
 };
 
 export const emptyXiongChatAnswers = (): XiongChatAnswers => ({ basic: {}, chips: [], history: "", screen: [null, null, null, null], skipped: [] });
 
+const blockSuffix = (step: { block?: number }) => step.block === undefined ? "" : `-${step.block}`;
 export const stepId = (step: XiongChatStep) =>
-  "key" in step ? step.key : step.kind === "tags" ? `tags-${step.group}${step.block === undefined ? "" : `-${step.block}`}` : step.kind === "scale" ? `scale-${step.item}` : step.kind;
+  "key" in step ? step.key
+    : step.kind === "tags" ? `tags-${step.group}${blockSuffix(step)}${step.cat === undefined ? "" : `-c${step.cat}`}`
+    : step.kind === "gate" ? `gate-${step.group}${blockSuffix(step)}`
+    : step.kind === "scale" ? `scale-${step.item}` : step.kind;
 
 // 多选标签：点互斥项清掉本组其他项；点其他项清掉互斥项。
 export function toggleXiongChip(chips: readonly string[], groupTitle: string, chip: string) {
@@ -137,6 +152,13 @@ export function xiongAnswerText(step: XiongChatStep, answers: XiongChatAnswers):
   const id = stepId(step);
   if (answers.skipped.includes(id)) return "已跳过";
   if (step.kind === "summary" || step.kind === "consent") return null;
+  if (step.kind === "gate") {
+    const follow = followOf(step);
+    const picked = answers.gates?.[id];
+    if (!picked) return null;
+    if (!picked.length) return follow.exit && answers.chips.includes(follow.exit) ? follow.exit : "都还好";
+    return picked.map(i => follow.cats[i].name).join("、");
+  }
   if (step.kind === "regions") return answers.regions ? (answers.regions.length ? answers.regions.map(i => XIONG_REGIONS[i].name).join("、") : "都还好") : null;
   if (step.kind === "tags") {
     const picked = xiongStepChips(step).filter(chip => answers.chips.includes(chip));
@@ -196,6 +218,7 @@ export function buildXiongChatReport(answers: XiongChatAnswers, scl90Summary: st
 // 一道多选题里显示的条目：拆过的大组只取这一小块。
 export function xiongStepChips(step: Extract<XiongChatStep, { kind: "tags" }>): readonly string[] {
   const group = XIONG_TCM_GROUPS[step.group];
+  if (step.cat !== undefined) return followOf(step).cats[step.cat].chips;
   return step.block === undefined ? group.chips : XIONG_CHIP_BLOCKS[group.title][step.block].chips;
 }
 
@@ -208,11 +231,83 @@ export const XIONG_REGIONS = [
 ] as const;
 
 // 没点到的部位就不问；跳过了选部位这一步，则四个部位都问。
-export function isXiongStepActive(step: XiongChatStep, answers: XiongChatAnswers) {
-  if (step.kind !== "tags" || step.block === undefined) return true;
+export function isXiongStepActive(step: XiongChatStep, answers: XiongChatAnswers): boolean {
+  if (step.kind === "gate") return blockActive(step, answers);
+  if (step.kind !== "tags") return true;
+  if (step.cat !== undefined) {
+    if (!blockActive(step, answers)) return false;
+    const gateId = stepId({ kind: "gate", part: step.part, lines: [], group: step.group, block: step.block });
+    return Boolean(answers.gates?.[gateId]?.includes(step.cat)) && !answers.skipped.includes(gateId);
+  }
+  return blockActive(step, answers);
+}
+
+function blockActive(step: { group: number; block?: number }, answers: XiongChatAnswers) {
+  if (step.block === undefined) return true;
   const title = XIONG_TCM_GROUPS[step.group].title;
   if (title === "二便") return step.block === 0 || !answers.chips.includes(XIONG_EXCLUSIVE_CHIPS.二便);
   if (title !== "症状") return true;
   if (!answers.regions || answers.skipped.includes("regions")) return true;
   return answers.regions.includes(step.block);
+}
+
+// ---- 两层追问（本人 11-11 定先做草稿版；分类名待陈主任确认）----
+// 一组超过 8 项时：先问“哪方面”（可多选，分类名只用来分组，不写进报告），再只问选中的分类，每屏最多 6 项。
+// 条目原文不改、一个不少（测试核对）。exit 是该组原有的“正常”类条目，单独一行，选了就跳过本组。
+export type XiongFollowup = { exit?: string; cats: { name: string; chips: readonly string[] }[] };
+export const XIONG_FOLLOWUPS: Record<string, XiongFollowup> = {
+  "症状/鼻部": { cats: [
+    { name: "鼻塞", chips: ["鼻塞", "晨晚鼻塞加重", "鼻塞呈单侧明显", "交替鼻塞流涕"] },
+    { name: "流涕、喷嚏、鼻痒", chips: ["反复流涕", "反复喷嚏", "打喷嚏时连续多次才停", "鼻痒时需反复用手捏鼻"] },
+    { name: "嗅觉、味觉", chips: ["嗅觉下降", "味觉下降"] },
+    { name: "呼吸、打鼾", chips: ["呼吸不畅", "呼吸困难", "眠时打鼾"] },
+  ] },
+  诱因: { exit: "无明显原因诱发", cats: [
+    { name: "季节、天气、受寒", chips: ["因季节变化诱发", "因天气变化诱发", "因受寒诱发", "因怕风诱发"] },
+    { name: "情绪、劳累", chips: ["因情绪波动诱发", "因工作压力大诱发", "因工作不顺心诱发", "因劳累诱发"] },
+    { name: "饮食、过敏", chips: ["因不洁饮食诱发", "因辛辣饮食诱发", "因饮酒过度诱发", "因过敏原接触诱发"] },
+  ] },
+  特征: { cats: [
+    { name: "什么时候明显", chips: ["夜间加重", "说话时明显", "活动时疼痛加重", "弯腰加重", "服药后缓解"] },
+    { name: "感觉和起病", chips: ["闷胀样痛", "胀痛", "钝痛", "慢性起病"] },
+  ] },
+  "寒热汗/寒热": { cats: [
+    { name: "怕冷、怕热", chips: ["畏寒", "畏热", "恶风", "恶寒", "寒热往来"] },
+    { name: "发热", chips: ["发热", "低热", "午后低热", "夜间发热", "潮热"] },
+    { name: "手脚心冷热", chips: ["手心热", "手心冷", "脚心热", "脚心冷"] },
+  ] },
+  "寒热汗/出汗": { exit: "无汗", cats: [
+    { name: "出汗方式", chips: ["自汗", "盗汗", "汗多", "汗黏", "冷汗"] },
+    { name: "头身部位", chips: ["头汗", "颈部汗", "上身汗", "胸部汗", "背部汗"] },
+    { name: "手脚", chips: ["手汗", "脚汗"] },
+  ] },
+  "饮食睡眠/饮食口渴": { exit: "饮食正常", cats: [
+    { name: "胃口", chips: ["纳可", "纳差", "纳呆", "厌食", "厌油腻"] },
+    { name: "饥饿、反酸", chips: ["易饥饿", "多食善饥", "饥不欲食", "反酸嘈杂"] },
+    { name: "口渴、喝水", chips: ["口干欲饮", "口渴不欲饮", "喜冷饮", "喜热饮"] },
+  ] },
+  "二便/大便": { exit: "二便正常", cats: [
+    { name: "干稀情况", chips: ["大便干结", "便溏", "稀水样便", "溏结不调", "大便前半段干后半段稀"] },
+    { name: "其他情况", chips: ["大便黏", "泡沫样便", "完谷不化", "便后腹胀腹痛减轻", "大便带有血丝"] },
+  ] },
+  "饮食睡眠/睡眠": { exit: "睡眠正常", cats: [
+    { name: "入睡和醒", chips: ["入睡困难", "眠浅", "易醒", "早醒", "多梦", "嗜睡"] },
+    { name: "吃睡合述", chips: ["纳眠一般", "纳差眠可", "纳可眠差"] },
+  ] },
+};
+
+function followKey(groupTitle: string, blockTitle?: string) { return blockTitle ? `${groupTitle}/${blockTitle}` : groupTitle; }
+
+export function followOf(step: { group: number; block?: number }): XiongFollowup {
+  const group = XIONG_TCM_GROUPS[step.group];
+  const block = step.block === undefined ? undefined : XIONG_CHIP_BLOCKS[group.title][step.block].title;
+  return XIONG_FOLLOWUPS[followKey(group.title, block)];
+}
+
+function followSteps(group: number, block: number | undefined, lines: string[]): XiongChatStep[] {
+  const follow = followOf({ group, block });
+  return [
+    { kind: "gate", part: 1, group, block, lines: [...lines, XIONG_CHAT_TEXT.gate] },
+    ...follow.cats.map((cat, c): XiongChatStep => ({ kind: "tags", part: 1, group, block, cat: c, lines: [`${cat.name}：有哪些情况？可多选`] })),
+  ];
 }

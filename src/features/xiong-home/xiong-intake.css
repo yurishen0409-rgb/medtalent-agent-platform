@@ -149,7 +149,7 @@
 .xc-help p { margin: 0; font-size: 15px; line-height: 1.6; color: #7A3B26; }
 .xc-help p + p { margin-top: 6px; }
 .xc-log, .xc-turn { display: grid; gap: 8px; }
-.xc-bot { justify-self: start; max-width: 88%; padding: 12px 16px; border: 1px solid #D9D2C5; border-radius: 16px; background: #FFFCF6; font-size: 17px; line-height: 1.55; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
+.xc-bot { justify-self: start; max-width: 88%; padding: 12px 16px; border: 1px solid #D9D2C5; border-radius: 16px; background: #FFFCF6; font-size: 17px; line-height: 1.55; transform-origin: left bottom; animation: xc-bubble .5s cubic-bezier(.2,.9,.3,1.15) both; }
 .xc-typing { display: flex; gap: 4px; padding: 14px 12px; }
 .xc-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--xc-main); animation: xc-dot 1.2s ease-in-out infinite; }
 .xc-typing i:nth-child(2) { animation-delay: .2s; }
@@ -227,6 +227,12 @@
 @keyframes xc-scroll { from { opacity: .2; clip-path: inset(0 0 100% 0 round 8px); } to { opacity: 1; clip-path: inset(0 0 0 0 round 8px); } }
 /* 墨滴：滴下、晕开、淡去。 */
 @keyframes xc-dot { 0%, 100% { opacity: .15; transform: scale(.6); filter: blur(0); } 45% { opacity: .9; transform: scale(1.15); filter: blur(.6px); } 70% { opacity: .5; transform: scale(1.3); filter: blur(1.2px); } }
+/* 11-11：助手气泡从左下角“晕开”入场，比原来的淡入更明显；点按墨晕跟着手指位置。 */
+@keyframes xc-bubble { 0% { opacity: 0; transform: translateY(14px) scale(.86); filter: blur(4px); background: var(--xc-tint); } 55% { opacity: 1; transform: translateY(-2px) scale(1.02); filter: blur(.4px); } 100% { opacity: 1; transform: none; filter: none; background: #FFFCF6; } }
+.xc-float, .xc-foot button, .xc-panel button, .xc-link, .xc-summary button { position: relative; overflow: hidden; }
+.xc-ripple { position: absolute; width: var(--d, 120px); height: var(--d, 120px); margin: calc(var(--d, 120px) / -2) 0 0 calc(var(--d, 120px) / -2); border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(59, 94, 76, .28) 0, rgba(59, 94, 76, .12) 45%, rgba(59, 94, 76, 0) 70%); animation: xc-ripple .6s cubic-bezier(.2,.7,.3,1) forwards; }
+.xc-primary .xc-ripple { background: radial-gradient(circle, rgba(255, 252, 246, .4) 0, rgba(255, 252, 246, 0) 70%); }
+@keyframes xc-ripple { from { opacity: 1; transform: scale(.05); } to { opacity: 0; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .xiong-chat * { animation: none !important; transition: none !important; } }
 
 /* 熊老全站：手机点按高亮保留，用浅竹青，不用灰黑（本人 11-09 定）。 */

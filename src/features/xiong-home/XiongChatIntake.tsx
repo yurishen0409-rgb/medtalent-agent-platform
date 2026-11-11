@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CaretRightIcon, CheckIcon, PencilSimpleIcon, ShieldCheckIcon } from "@phosphor-icons/react";
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, stepId, toggleXiongChip, xiongAnswerText,
-  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, XIONG_DECADES, XIONG_REGIONS, isXiongStepActive, xiongStepChips, XIONG_EXCLUSIVE_CHIPS, type XiongChatAnswers, type XiongChatStep,
+  XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_DECADES, XIONG_REGIONS, isXiongStepActive, xiongStepChips, XIONG_EXCLUSIVE_CHIPS, type XiongChatAnswers, type XiongChatStep,
 } from "./xiongChat";
 import { researchId, XIONG_BASIC_FIELDS, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
 
@@ -12,7 +12,8 @@ const SCREEN = XIONG_SCALES.find(scale => scale.id === "screen")!;
 const CONSENT = "我了解：本表只用于整理就诊资料，供医生参考。";
 
 type Draft = { step: number; answers: XiongChatAnswers };
-const draftKey = (slug: string) => `xiong-chat-draft-v3:${slug}`;
+// v4：11-11 加了两层追问，题序变了，旧草稿不再沿用。
+const draftKey = (slug: string) => `xiong-chat-draft-v4:${slug}`;
 function readDraft(slug: string): Draft | null {
   try {
     const value = JSON.parse(window.localStorage.getItem(draftKey(slug)) ?? "null");
@@ -35,13 +36,34 @@ function writeReport(slug: string, report: LastReport | null) {
   try { if (report) window.localStorage.setItem(reportKey(slug), JSON.stringify(report)); else window.localStorage.removeItem(reportKey(slug)); } catch { /* 同上 */ }
 }
 // 动效规则（11-10 本人定）：换题零等待；“正在输入”只在三个部分开头出现，≤0.6 秒；点选后约 0.25 秒进下一题。
+// 11-11 本人补充：多句话一条一条出（部分开头每条前先出“正在输入”），气泡入场更明显，点按有墨晕。
 const isOpening = (index: number) => index === 0 || (index < STEPS.length && STEPS[index].part !== STEPS[index - 1].part);
 const reduceMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const wait = (ms: number) => reduceMotion() ? 0 : ms;
 
+// 助手气泡去掉句末句号（本人 11-11 定）；求助卡、报告正文不经过这里，原文不动。
+const plain = (line: string) => line.replace(/。$/, "");
 function Bot({ lines, typing }: { lines: string[]; typing?: boolean }) {
-  if (typing) return <div className="xc-bot xc-typing" aria-label="正在输入"><i /><i /><i /></div>;
-  return <>{lines.map((line, index) => <div className="xc-bot" key={`${index}-${line}`}>{line}</div>)}</>;
+  return <>
+    {lines.map((line, index) => <div className="xc-bot" key={`${index}-${line}`}>{plain(line)}</div>)}
+    {typing && <div className="xc-bot xc-typing" aria-label="正在输入"><i /><i /><i /></div>}
+  </>;
+}
+
+// 点按墨晕：在手指按下的位置晕开一圈浅竹青（减弱动态效果时不出）。
+function inkAt(event: React.PointerEvent) {
+  if (reduceMotion()) return;
+  const button = (event.target as Element).closest("button");
+  if (!button || (button as HTMLButtonElement).disabled) return;
+  const box = button.getBoundingClientRect();
+  const ink = document.createElement("span");
+  ink.className = "xc-ripple";
+  ink.setAttribute("aria-hidden", "true");
+  ink.style.left = `${event.clientX - box.left}px`;
+  ink.style.top = `${event.clientY - box.top}px`;
+  ink.style.setProperty("--d", `${Math.max(box.width, box.height) * 2.2}px`);
+  button.appendChild(ink);
+  window.setTimeout(() => ink.remove(), 650);
 }
 
 // 回答气泡里的编号：单选题、量表题显示所选的序号（与答题按钮一致）。
@@ -144,7 +166,8 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   const [step, setStep] = useState(initial?.step ?? (last ? STEPS.length : 0));
   const [answers, setAnswers] = useState<XiongChatAnswers>(initial?.answers ?? last?.answers ?? emptyXiongChatAnswers());
   const [resumed] = useState(Boolean(initial && initial.step > 0));
-  const [typing, setTyping] = useState(() => isOpening(initial?.step ?? 0));
+  // 当前题已出现几句；全部出完才出答题区。
+  const [shown, setShown] = useState(0);
   const [menu, setMenu] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>(last?.savedIds ?? []);
   const [picked, setPicked] = useState<string | null>(null);
@@ -159,12 +182,21 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   useEffect(() => { if (!finished) writeDraft(slug, { step, answers }); }, [slug, step, answers, finished]);
   useEffect(() => {
     setPicked(null); setWriting(false); setMenu(false);
-    if (!isOpening(step)) { setTyping(false); return; }
-    setTyping(true);
-    const timer = window.setTimeout(() => setTyping(false), wait(600));
-    return () => window.clearTimeout(timer);
+    const total = STEPS[step]?.lines.length ?? 0;
+    const opening = isOpening(step);
+    // 部分开头：每句前“正在输入”0.6 秒；其余多句的题：每句间隔 0.35 秒；单句题直接出。
+    const gap = wait(opening ? 600 : 350);
+    let count = opening || total <= 1 ? 0 : 1;
+    setShown(gap === 0 ? total : count);
+    if (gap === 0 || count >= total) return;
+    const timer = window.setInterval(() => {
+      count += 1; setShown(count);
+      if (count >= total) window.clearInterval(timer);
+    }, gap);
+    return () => window.clearInterval(timer);
   }, [step]);
-  useEffect(() => { endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion() ? "auto" : "smooth" }); }, [step, typing]);
+  const typing = Boolean(current) && shown < current!.lines.length;
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion() ? "auto" : "smooth" }); }, [step, shown]);
 
   const advance = () => {
     if (returnTo !== null) { setStep(returnTo); setReturnTo(null); return; }
@@ -279,6 +311,38 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
           <button type="button" className="xc-primary xc-sticky" onClick={count ? () => commit(v => v) : skip}>{count ? <>选好了（已选 <span className="xc-count" key={count}>{count}</span> 项）</> : "这组先跳过"}</button>
         </>;
       }
+      case "gate": {
+        // 两层追问第一层：先选哪方面（可多选）；原有“正常”类条目单独一行放最上面，选了就进下一题。
+        const group = XIONG_TCM_GROUPS[s.group];
+        const follow = followOf(s);
+        const id = stepId(s);
+        const all = [...follow.cats.flatMap(cat => cat.chips), ...(follow.exit ? [follow.exit] : [])];
+        const cats = answers.gates?.[id] ?? [];
+        const exitOn = Boolean(follow.exit && answers.chips.includes(follow.exit));
+        const toggle = (cat: number) => setAnswers(v => {
+          const list = v.gates?.[id] ?? [];
+          return { ...v, chips: follow.exit ? v.chips.filter(chip => chip !== follow.exit) : v.chips, gates: { ...v.gates, [id]: list.includes(cat) ? list.filter(c => c !== cat) : [...list, cat].sort() } };
+        });
+        const chooseExit = () => commit(v => {
+          const rest = v.chips.filter(chip => !all.includes(chip));
+          const chips = XIONG_EXCLUSIVE_CHIPS[group.title] === follow.exit ? toggleXiongChip(rest, group.title, follow.exit!) : [...rest, follow.exit!];
+          return { ...v, chips, gates: { ...v.gates, [id]: [] } };
+        }, follow.exit);
+        // 取消的分类，它下面已选的条目一并清掉。
+        const confirm = () => commit(v => {
+          const kept = new Set((v.gates?.[id] ?? []).flatMap(c => follow.cats[c].chips));
+          return { ...v, chips: v.chips.filter(chip => !all.includes(chip) || kept.has(chip)) };
+        });
+        return <>
+          <div className="xc-tags">
+            {follow.exit && <button type="button" className={`xc-tag is-exclusive${exitOn || picked === follow.exit ? " is-on" : ""}`} aria-pressed={exitOn} onClick={chooseExit}>
+              <span>{follow.exit}</span>{(exitOn || picked === follow.exit) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>}
+            {follow.cats.map((cat, c) => <button type="button" key={cat.name} className={`xc-tag${cats.includes(c) ? " is-on" : ""}`} aria-pressed={cats.includes(c)} onClick={() => toggle(c)}>
+              <span>{cat.name}</span>{cats.includes(c) && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>)}
+          </div>
+          <button type="button" className="xc-primary xc-sticky" onClick={cats.length ? confirm : skip}>{cats.length ? <>选好了（已选 <span className="xc-count" key={cats.length}>{cats.length}</span> 类）</> : "这组先跳过"}</button>
+        </>;
+      }
       case "scale": {
         const item = SCREEN.items[s.item];
         return <div className="xc-scale">
@@ -297,7 +361,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     }
   };
 
-  return <div className="xiong-chat" aria-label="健康问答">
+  return <div className="xiong-chat" aria-label="健康问答" onPointerDown={inkAt}>
     {/* 窗口头：结构仿问学窗口，用“预问诊助手”身份、竹青色、无头像，和问学区分开（本人 11-09 定）。 */}
     {/* 顶部只留标题和安全条；进度、稍后继续和“更多”收进右上角悬浮气泡（本人 11-11 定，草图见需求页第三十节）。 */}
     <header className="xc-head"><h2>预问诊助手</h2></header>
@@ -336,7 +400,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
       })())}
       {current && <div className="xc-turn">
         {resumed && step === initial?.step && <Bot lines={[XIONG_CHAT_TEXT.resume]} />}
-        {typing ? <Bot lines={[]} typing /> : <Bot lines={current.lines} />}
+        <Bot lines={current.lines.slice(0, shown)} typing={typing && isOpening(step)} />
         {!typing && <div className="xc-zone" key={step}>{renderAnswerZone(current)}</div>}
       </div>}
 
