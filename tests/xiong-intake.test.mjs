@@ -324,3 +324,10 @@ test('答完的题，聊天记录只留问题和回答，“先选哪方面”�
   const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
   assert.match(chat, /xiongAnsweredLines\(s\.lines\)/);
 });
+
+test('健康问答字号和问学对齐（本人 11-11 定）：气泡 11px，按钮不再被统一继承成大字，输入框保持 16px', async () => {
+  const css = await read('../src/features/xiong-home/xiong-intake.css');
+  assert.match(css, /\.xiong-chat :where\(button, input, textarea\) \{ font: inherit; \}/);
+  assert.match(css, /\.xc-bot \{[^}]*font-size: 11px; line-height: 1\.7;/);
+  assert.match(css, /\.xiong-chat :is\(input, textarea, select\) \{ font-size: 16px; \}/);
+});
