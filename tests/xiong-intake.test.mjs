@@ -331,3 +331,9 @@ test('健康问答字号和问学对齐（本人 11-11 定）：气泡 11px，�
   assert.match(css, /\.xc-bot \{[^}]*font-size: 11px; line-height: 1\.7;/);
   assert.match(css, /\.xiong-chat :is\(input, textarea, select\) \{ font-size: 16px; \}/);
 });
+
+test('急症条和求助卡字号不缩小（求助提示不弱化）', async () => {
+  const css = await read('../src/features/xiong-home/xiong-intake.css');
+  for (const m of css.matchAll(/\.xc-safety \{[^}]*font-size: (\d+)px/g)) assert.ok(Number(m[1]) >= 13, `急症条 ${m[1]}px`);
+  for (const m of css.matchAll(/\.xc-help p \{[^}]*font-size: (\d+)px/g)) assert.ok(Number(m[1]) >= 15, `求助卡 ${m[1]}px`);
+});

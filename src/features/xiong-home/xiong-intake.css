@@ -133,7 +133,7 @@
 .xc-log { padding-top: 48px; }
 .xc-float-wrap + .xc-help { margin-top: 54px; }
 .xc-float-wrap + .xc-help + .xc-log { padding-top: 0; }
-.xc-safety { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 -16px; padding: 8px 16px; background: var(--xc-tint); color: var(--xc-main); font-size: 10px; }
+.xc-safety { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 -16px; padding: 8px 16px; background: var(--xc-tint); color: var(--xc-main); font-size: 13px; }
 .xc-map { display: block; width: min(100%, 300px); margin: 0 auto; animation: xc-in .3s cubic-bezier(.22,.8,.3,1) both; }
 .xc-map-line { fill: none; stroke: #6E8A79; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 900; animation: xc-draw 1s ease-out both; }
 .xc-zone-hit { fill: rgba(227, 234, 229, 0); stroke: #6E8A79; stroke-width: 1.2; stroke-dasharray: 4 4; cursor: pointer; transition: fill .45s, stroke .45s; -webkit-tap-highlight-color: rgba(59, 94, 76, .16); }
@@ -146,7 +146,8 @@
 /* 头面部图线条像毛笔勾勒，慢慢画出。 */
 @keyframes xc-draw { from { stroke-dashoffset: 900; } to { stroke-dashoffset: 0; } }
 .xc-help { padding: 10px 12px; border: 1px solid #C9A28F; border-radius: 8px; background: #FBF1EC; }
-.xc-help p { margin: 0; font-size: 11px; line-height: 1.6; color: #7A3B26; }
+/* 急症、求助提示不随界面缩小（红线：求助提示不弱化）。 */
+.xc-help p { margin: 0; font-size: 15px; line-height: 1.6; color: #7A3B26; }
 .xc-help p + p { margin-top: 6px; }
 .xc-log, .xc-turn { display: grid; gap: 8px; }
 .xc-bot { justify-self: start; max-width: 88%; padding: 12px 16px; border: 1px solid #D9D2C5; border-radius: 16px; background: #FFFCF6; font-size: 11px; line-height: 1.55; transform-origin: left bottom; animation: xc-bubble .5s cubic-bezier(.2,.9,.3,1.15) both; }
@@ -321,7 +322,7 @@
 .xc-back { min-height: 32px; font-size: 12px; }
 .xc-ava.is-head { width: 40px; height: 40px; }
 .xc-ava.is-chat { width: 31px; height: 31px; margin-top: 0; }
-.xc-safety { padding: 6px 16px; font-size: 10px; }
+.xc-safety { padding: 6px 16px; font-size: 13px; }
 .xc-float { height: 34px; font-size: 12px; }
 .xc-bot { max-width: 100%; padding: 11px 13px; border-radius: 5px 16px 16px 16px; font-size: 11px; line-height: 1.7; }
 .xc-bot-col { max-width: 78%; flex: 0 1 auto; }
