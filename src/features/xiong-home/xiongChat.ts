@@ -66,7 +66,9 @@ export const XIONG_CHAT_TEXT = {
   gate: "先选哪方面，可多选",
   basic: "先登记几项基本情况，点下方填写",
   complaint: "先说说哪里难受，按话筒说或打字",
-  complaintHint: "说完会帮您先勾好，后面逐项核对",
+  complaintHint: "照下面几方面说得越全，后面问得越少",
+  confirm: "按您说的，先记下这些",
+  confirmHint: "有出入的点掉，没说到的再问您",
   prefilled: "按您刚才说的已先勾好，请核对",
   tongue: "如方便，请拍一张舌头的照片",
   tongueHint: "自然光下伸出舌头，拍清舌面",
@@ -87,6 +89,7 @@ const TAG_PROMPTS: Record<string, string> = {
 export type XiongChatStep =
   | { kind: "basic"; part: number; lines: string[] }
   | { kind: "complaint"; part: number; lines: string[] }
+  | { kind: "confirm"; part: number; lines: string[] }
   | { kind: "tongue"; part: number; lines: string[] }
   | { kind: "text"; part: number; lines: string[]; key: "history"; placeholder: string }
   | { kind: "tags"; part: number; lines: string[]; group: number; block?: number; cat?: number }
@@ -102,6 +105,8 @@ export function buildXiongChatSteps(): XiongChatStep[] {
     { kind: "basic", part: 0, lines: [XIONG_CHAT_TEXT.welcome, partOpening(0), XIONG_CHAT_TEXT.basic] },
     // 中医问诊先让患者自己说，整理出的条目预先勾选，后面各组逐项核对（本人 11-11 定）。
     { kind: "complaint", part: 1, lines: [XIONG_CHAT_TEXT.autoSaved, partOpening(1), XIONG_CHAT_TEXT.complaint, XIONG_CHAT_TEXT.complaintHint] },
+    // 自述整理后先在一页核对；已说到的组后面不再问（本人 11-11 定）。
+    { kind: "confirm", part: 1, lines: [XIONG_CHAT_TEXT.confirm, XIONG_CHAT_TEXT.confirmHint] },
     ...XIONG_TCM_GROUPS.flatMap((group, index): XiongChatStep[] => {
       const blocks = XIONG_CHIP_BLOCKS[group.title];
       if (!blocks) {
@@ -138,6 +143,8 @@ export type XiongChatAnswers = {
   // 患者自述原话；从中整理出、预先勾上的条目；服务端返回的求助提示（原文）。
   complaint?: string;
   aiChips?: string[];
+  // 自述里已说清楚的组或小题（键见 xiongBlockKey），后面不再逐项问。
+  covered?: string[];
   alerts?: string[];
   // 选了“不清楚”的题（stepId）。
   unsure?: string[];
@@ -176,6 +183,7 @@ export function xiongAnswerText(step: XiongChatStep, answers: XiongChatAnswers):
   if (answers.unsure?.includes(id)) return XIONG_UNSURE;
   if (step.kind === "basic") return xiongBasicLine(answers.basic) || null;
   if (step.kind === "complaint") return answers.complaint?.trim() || null;
+  if (step.kind === "confirm") return answers.covered?.length ? `已说到：${answers.covered.map(key => key.split("/").at(-1)).join("、")}` : "已核对";
   if (step.kind === "tongue") return answers.tongue ? "已拍舌象照片" : null;
   if (step.kind === "gate") {
     const follow = followOf(step);
@@ -269,6 +277,8 @@ export const XIONG_REGIONS = [
 
 // 没点到的部位就不问；跳过了选部位这一步，则四个部位都问。
 export function isXiongStepActive(step: XiongChatStep, answers: XiongChatAnswers): boolean {
+  if (step.kind === "confirm") return Boolean(answers.aiChips?.length || answers.covered?.length);
+  if ((step.kind === "gate" || step.kind === "tags") && answers.covered?.includes(xiongBlockKey(step))) return false;
   if (step.kind === "gate") return blockActive(step, answers);
   if (step.kind !== "tags") return true;
   if (step.cat !== undefined) {
@@ -350,9 +360,30 @@ function followSteps(group: number, block: number | undefined, lines: string[]):
 
 // ---- 主诉整理后预先勾选（本人 11-11 定）----
 // 服务端只能返回词表里已有的条目；这里再按词表过滤一遍，并按条目推出部位和两层追问的分类。
-export const xiongVocabulary = () => XIONG_TCM_GROUPS.map(group => ({ title: group.title, chips: [...group.chips] }));
+// 组或小题的键：没拆的组用组名，拆过的用“组名/小题名”。
+export function xiongBlockKey(step: { group: number; block?: number }) {
+  const title = XIONG_TCM_GROUPS[step.group].title;
+  return step.block === undefined ? title : `${title}/${XIONG_CHIP_BLOCKS[title][step.block].title}`;
+}
 
-export function applyXiongPrefill(answers: XiongChatAnswers, picked: readonly string[], alerts: readonly string[] = []): XiongChatAnswers {
+// 发给服务端的词表：按“一道题”为单位，模型据此判断哪些题患者已说清楚。
+export const xiongVocabulary = () => XIONG_TCM_GROUPS.flatMap(group => XIONG_CHIP_BLOCKS[group.title]
+  ? XIONG_CHIP_BLOCKS[group.title].map(block => ({ key: `${group.title}/${block.title}`, title: `${group.title}·${block.title}`, chips: [...block.chips] }))
+  : [{ key: group.title, title: group.title, chips: [...group.chips] }]);
+
+// 引导患者自述时可以说的几方面（按中医问诊顺序；点一下在输入框里加上开头）。
+export const XIONG_TALK_GUIDE = [
+  { name: "起因", hint: "什么时候开始，因为什么" },
+  { name: "鼻子", hint: "鼻塞、流涕、喷嚏、闻味" },
+  { name: "咽喉耳头", hint: "咽痒、耳鸣、头晕眼痛" },
+  { name: "加重", hint: "什么时候更明显" },
+  { name: "冷热出汗", hint: "怕冷怕热，出汗多少" },
+  { name: "吃睡", hint: "胃口、口味、睡眠" },
+  { name: "大小便", hint: "成形吗，顺畅吗" },
+  { name: "心情", hint: "最近心情怎么样" },
+] as const;
+
+export function applyXiongPrefill(answers: XiongChatAnswers, picked: readonly string[], alerts: readonly string[] = [], covered: readonly string[] = []): XiongChatAnswers {
   const known = new Set(XIONG_TCM_GROUPS.flatMap(group => group.chips));
   let chips = [...answers.chips];
   const added: string[] = [];
@@ -372,5 +403,6 @@ export function applyXiongPrefill(answers: XiongChatAnswers, picked: readonly st
     const cats = follow.cats.map((cat, c) => cat.chips.some(chip => chips.includes(chip)) ? c : -1).filter(c => c >= 0);
     if (cats.length) gates[stepId(step)] = [...new Set([...(gates[stepId(step)] ?? []), ...cats])].sort();
   }
-  return { ...answers, chips, gates, regions: [...regions].sort(), aiChips: [...new Set([...(answers.aiChips ?? []), ...added])], alerts: [...new Set([...(answers.alerts ?? []), ...alerts])] };
+  const keys = new Set(xiongVocabulary().map(item => item.key));
+  return { ...answers, chips, gates, regions: [...regions].sort(), covered: [...new Set([...(answers.covered ?? []), ...covered.filter(key => keys.has(key))])], aiChips: [...new Set([...(answers.aiChips ?? []), ...added])], alerts: [...new Set([...(answers.alerts ?? []), ...alerts])] };
 }

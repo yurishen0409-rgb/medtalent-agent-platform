@@ -4,7 +4,7 @@ import { createWavRecorder } from "../../lib/wavRecorder";
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, stepId, toggleXiongChip, xiongAnswerText,
   XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, type XiongChatAnswers, type XiongChatStep,
-  XIONG_AREAS, XIONG_SURROUNDINGS, XIONG_OCCUPATIONS, XIONG_EDUCATION, XIONG_UNSURE, applyXiongPrefill, xiongBasicLine, xiongVocabulary,
+  XIONG_AREAS, XIONG_SURROUNDINGS, XIONG_OCCUPATIONS, XIONG_EDUCATION, XIONG_UNSURE, applyXiongPrefill, xiongBasicLine, xiongVocabulary, XIONG_TALK_GUIDE,
 } from "./xiongChat";
 import { researchId, removeTonguePhoto, saveTonguePhoto, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
 
@@ -136,6 +136,12 @@ function ComplaintAnswer({ initial, busy, onDone }: { initial: string; busy: boo
   const [recording, setRecording] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
+  const field = useRef<HTMLTextAreaElement>(null);
+  // 点一方面，在输入框里另起一行写上开头，引导患者按问诊顺序说全（本人 11-11 定）。
+  const start = (name: string) => {
+    setText(current => `${current.trim()}${current.trim() ? "\n" : ""}${name}：`);
+    window.setTimeout(() => { const el = field.current; if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 0);
+  };
   const recorder = useMemo(() => createWavRecorder(setRecording), []);
   useEffect(() => () => { void recorder.cancel(); }, [recorder]);
   const toggle = async () => {
@@ -147,7 +153,7 @@ function ComplaintAnswer({ initial, busy, onDone }: { initial: string; busy: boo
       if (!wav) return;
       const response = await fetch("/api/asr", { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav, signal: AbortSignal.timeout(100_000) });
       const data = await response.json().catch(() => ({})) as { text?: string; error?: string };
-      if (!response.ok || !data.text?.trim()) throw new Error(data.error || "没有听清，请再说一次或打字。");
+      if (!response.ok || !data.text?.trim()) throw new Error(response.status === 503 || /未配置/.test(data.error ?? "") ? "话筒暂时用不了，请先打字。" : data.error || "没有听清，请再说一次或打字。");
       setText(current => [current.trim(), data.text!.trim()].filter(Boolean).join("，"));
     } catch (err) { setError(err instanceof Error ? err.message : "没有听清，请再说一次或打字。"); }
     finally { setWorking(false); }
@@ -158,7 +164,9 @@ function ComplaintAnswer({ initial, busy, onDone }: { initial: string; busy: boo
       <span>{recording ? "说完了，点这里" : working ? "正在转成文字" : "按一下开始说"}</span>
     </button>
     {error && <p className="xc-hint">{error}</p>}
-    <textarea rows={4} maxLength={1000} value={text} placeholder="如：鼻子堵了半年，早晚打喷嚏，晚上睡不好" onChange={event => setText(event.target.value)} aria-label="哪里难受" />
+    <div className="xc-guide" aria-label="可以说说这几方面">{XIONG_TALK_GUIDE.map(item => <button type="button" key={item.name} onClick={() => start(item.name)}>
+      <b>{item.name}</b><small>{item.hint}</small></button>)}</div>
+    <textarea ref={field} rows={5} maxLength={1000} value={text} placeholder="如：鼻子堵了半年，早晚打喷嚏，晚上睡不好" onChange={event => setText(event.target.value)} aria-label="哪里难受" />
     <button type="button" className="xc-primary" disabled={!text.trim() || busy || recording || working} onClick={() => onDone(text.trim())}>{busy ? "正在整理，请稍候" : "说好了，下一步"}</button>
   </div>;
 }
@@ -300,14 +308,15 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     setBusy(true);
     let picked: string[] = [];
     let alerts: string[] = [];
+    let covered: string[] = [];
     try {
       const response = await fetch("/api/xiong/intake/extract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, vocab: xiongVocabulary() }), signal: AbortSignal.timeout(60_000) });
-      const data = await response.json().catch(() => ({})) as { chips?: string[]; alerts?: string[] };
-      if (response.ok) { picked = data.chips ?? []; alerts = data.alerts ?? []; }
+      const data = await response.json().catch(() => ({})) as { chips?: string[]; covered?: string[]; alerts?: string[] };
+      if (response.ok) { picked = data.chips ?? []; alerts = data.alerts ?? []; covered = data.covered ?? []; }
     } catch { /* 网络中断：照常逐项问 */ }
     setBusy(false);
-    setNotice(picked.length ? `按您说的已先勾好 ${picked.length} 项，请逐项核对。` : "接下来逐项问您，请照实点选。");
-    commit(value => applyXiongPrefill({ ...value, complaint: text }, picked, alerts));
+    setNotice(picked.length || covered.length ? "" : "接下来逐项问您，请照实点选。");
+    commit(value => applyXiongPrefill({ ...value, complaint: text }, picked, alerts, covered));
   };
   const markUnsure = (id: string, clear: readonly string[], extra?: (value: XiongChatAnswers) => XiongChatAnswers) =>
     commit(value => { const next = { ...value, chips: value.chips.filter(chip => !clear.includes(chip)), unsure: [...(value.unsure ?? []).filter(item => item !== id), id] }; return extra ? extra(next) : next; }, XIONG_UNSURE);
@@ -380,6 +389,26 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     switch (s.kind) {
       case "basic": return <BasicForm initial={answers.basic} onDone={basic => commit(v => ({ ...v, basic }))} />;
       case "complaint": return <ComplaintAnswer initial={answers.complaint ?? ""} busy={busy} onDone={text => void submitComplaint(text)} />;
+      case "confirm": {
+        // 核对页：整理出的条目按题列出，可点掉；已说清的题后面不再问，可点“再问一遍”。
+        const vocab = xiongVocabulary();
+        const rows = vocab.filter(item => item.chips.some(chip => answers.aiChips?.includes(chip)) || answers.covered?.includes(item.key));
+        return <div className="xc-confirm">
+          {rows.map(item => {
+            const done = answers.covered?.includes(item.key);
+            return <section key={item.key}>
+              <header><b>{item.title}</b>{done ? <button type="button" className="xc-link" onClick={() => setAnswers(v => ({ ...v, covered: (v.covered ?? []).filter(key => key !== item.key) }))}>已说到 · 再问一遍</button> : <small>后面再核对</small>}</header>
+              <div className="xc-tags">{item.chips.filter(chip => answers.aiChips?.includes(chip)).map(chip => {
+                const on = answers.chips.includes(chip);
+                const group = XIONG_TCM_GROUPS.find(g => g.chips.includes(chip))!;
+                return <button type="button" key={chip} className={`xc-tag${on ? " is-on" : ""}`} aria-pressed={on} onClick={() => setAnswers(v => ({ ...v, chips: toggleXiongChip(v.chips, group.title, chip) }))}>
+                  <span>{chip}</span>{on && <CheckIcon className="xc-check" size={16} weight="bold" />}</button>;
+              })}</div>
+            </section>;
+          })}
+          <button type="button" className="xc-primary" onClick={() => commit(v => v)}>对的，继续</button>
+        </div>;
+      }
       case "tongue": return <TongueAnswer initial={answers.tongue} consented={Boolean(answers.tongueConsentAt)} onDone={(tongue, at) => commit(v => ({ ...v, tongue, tongueConsentAt: at }))} />;
       case "text": return <TextAnswer key={s.key} placeholder={s.placeholder} multiline initial={answers.history}
         onDone={value => commit(v => ({ ...v, history: value }))} />;

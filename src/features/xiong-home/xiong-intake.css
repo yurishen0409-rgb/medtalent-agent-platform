@@ -247,6 +247,15 @@
 .xc-complaint textarea { min-height: 96px; padding: 10px 12px; border: 1px solid #D9D2C5; border-radius: 8px; background: #fff; font-size: 16px; line-height: 1.5; resize: vertical; }
 .xc-mic { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border: 1.5px solid var(--xc-main); border-radius: 28px; background: var(--xc-tint); color: var(--xc-main); font-size: 17px; }
 .xc-mic.is-on { background: #FFFCF6; animation: xc-breathe 1.4s ease-in-out infinite; }
+.xc-guide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.xc-guide button { display: grid; gap: 1px; min-height: 48px; padding: 6px 10px; border: 1px dashed var(--xc-line); border-radius: 8px; background: #FFFCF6; text-align: left; }
+.xc-guide b { font-size: 15px; font-weight: 600; color: var(--xc-main); }
+.xc-guide small { font-size: 12px; line-height: 1.35; color: #595752; }
+.xc-confirm { display: grid; gap: 12px; }
+.xc-confirm section { display: grid; gap: 6px; padding: 10px; border: 1px solid #D9D2C5; border-radius: 10px; background: #FFFCF6; }
+.xc-confirm header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.xc-confirm header b { font-size: 15px; color: var(--xc-main); }
+.xc-confirm header small { font-size: 13px; color: #595752; }
 .xc-prefill { margin: 0 0 6px; padding: 6px 10px; border-left: 3px solid var(--xc-main); background: var(--xc-tint); color: var(--xc-main); font-size: 14px; }
 .xc-tag.is-unsure { color: #595752; }
 .xc-agree { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; line-height: 1.5; }

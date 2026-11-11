@@ -7,7 +7,7 @@ import {
 } from '../src/features/xiong-home/xiongIntake.ts';
 import {
   buildXiongChatReport, buildXiongChatSteps, emptyXiongChatAnswers, isXiongStepActive, toggleXiongChip, xiongAnswerText, XIONG_CHAT_TEXT, XIONG_REGIONS,
-  applyXiongPrefill, stepId, XIONG_UNSURE_NOTE, XIONG_SURROUNDINGS,
+  applyXiongPrefill, stepId, XIONG_UNSURE_NOTE, XIONG_SURROUNDINGS, xiongBlockKey, xiongVocabulary, XIONG_TALK_GUIDE,
 } from '../src/features/xiong-home/xiongChat.ts';
 
 const scale = id => XIONG_SCALES.find(item => item.id === id);
@@ -275,4 +275,24 @@ test('舌象照片：先勾授权再拍，照片另存本机，记录只记“�
   assert.doesNotMatch(chat, /不会发给 AI|大模型|人工智能/);
   const intake = await read('../src/features/xiong-home/xiongIntake.ts');
   assert.match(intake, /tonguePhoto\?: boolean/);
+});
+
+test('自述说清楚的题后面不再问；核对页可“再问一遍”；词表按题给键（本人 11-11 定）', async () => {
+  const vocab = xiongVocabulary();
+  assert.ok(vocab.some(item => item.key === '饮食睡眠/睡眠') && vocab.some(item => item.key === '诱因'));
+  assert.deepEqual([...vocab.flatMap(item => item.chips)].sort(), [...XIONG_TCM_GROUPS.flatMap(group => group.chips)].sort(), '条目一个不少');
+  assert.equal(XIONG_TALK_GUIDE.length, 8);
+  const steps = buildXiongChatSteps();
+  const confirm = steps.find(step => step.kind === 'confirm');
+  const base = emptyXiongChatAnswers();
+  assert.equal(isXiongStepActive(confirm, base), false, '没整理出东西就不出核对页');
+  const next = applyXiongPrefill(base, ['睡眠正常'], [], ['饮食睡眠/睡眠', '乱写的键']);
+  assert.deepEqual(next.covered, ['饮食睡眠/睡眠']);
+  assert.ok(isXiongStepActive(confirm, next));
+  const sleep = steps.filter(step => (step.kind === 'gate' || step.kind === 'tags') && xiongBlockKey(step) === '饮食睡眠/睡眠');
+  assert.ok(sleep.length > 1 && sleep.every(step => !isXiongStepActive(step, next)), '睡眠这题整组越过');
+  const taste = steps.find(step => step.kind === 'tags' && xiongBlockKey(step) === '饮食睡眠/口味');
+  assert.ok(isXiongStepActive(taste, next), '没说到的题照常问');
+  const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
+  assert.match(chat, /已说到 · 再问一遍/);
 });
