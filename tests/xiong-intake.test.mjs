@@ -129,7 +129,7 @@ test('互斥项清掉本组其他项，跳过记为缺失，量表缺题标未�
   const scale = buildXiongChatSteps().find(step => step.kind === 'scale' && step.item === 2);
   assert.equal(xiongAnswerText(scale, answers), '已跳过');
   const report = buildXiongChatReport(answers, null, new Date('2026-11-09T02:00:00Z'));
-  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '舌象', '情志初筛', 'SCL-90']);
+  assert.deepEqual(report.blocks.map(block => block.title), ['一般资料', '中医问诊', '舌象', '鼻内镜', '情志初筛', 'SCL-90']);
   assert.match(report.text, /PHQ-2：3 \/ 6 · GAD-2：未完成（已答 0\/2）/);
   assert.match(report.text, /SCL-90】未填写/);
   assert.ok(report.advice.length === 1, 'PHQ-2 ≥3 给出进一步评估建议');
@@ -221,7 +221,7 @@ test('两层追问（本人 11-11 定，草稿版，分类名待陈主任确认�
   assert.equal(xiongAnswerText(gate, { ...base, chips: ['无明显原因诱发'], gates: { [id]: [] } }), '无明显原因诱发');
   const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
   assert.match(chat, /case "gate"/);
-  assert.match(chat, /xiong-chat-draft-v5/, '题序变了，草稿换新版本号');
+  assert.match(chat, /xiong-chat-draft-v6/, '题序变了，草稿换新版本号');
 });
 
 test('开场一句一句出、助手气泡去句末句号、点按有墨晕（本人 11-11 定）', async () => {
@@ -346,4 +346,31 @@ test('基本情况填全后，收起卡片不把对话区撑出屏幕（11-11 �
 test('求助提示放在悬浮进度按钮下方，不被遮挡', async () => {
   const css = await read('../src/features/xiong-home/xiong-intake.css');
   assert.match(css, /\.xc-float-wrap \+ \.xc-help \{ margin-top: 52px; \}/);
+});
+
+test('鼻内镜照片：舌象之后选填一步，先勾授权，可从相册选，照片另存本机，报告和导出都有（本人 11-12 定）', async () => {
+  const steps = buildXiongChatSteps();
+  const tongue = steps.findIndex(step => step.kind === 'tongue');
+  const endoscope = steps.findIndex(step => step.kind === 'endoscope');
+  assert.equal(endoscope, tongue + 1);
+  assert.equal(steps[endoscope].part, 1);
+  for (const line of [XIONG_CHAT_TEXT.endoscope, XIONG_CHAT_TEXT.endoscopeHint]) {
+    assert.ok(line.length <= 25, line);
+    assert.doesNotMatch(line, /不/);
+  }
+  const answers = { ...emptyXiongChatAnswers(), endoscope: 'data:image/jpeg;base64,AA', endoscopeConsentAt: '2026-11-12T08:00:00Z' };
+  assert.equal(xiongAnswerText(steps[endoscope], answers), '已上传鼻内镜照片');
+  assert.deepEqual(buildXiongChatReport(answers).blocks.find(block => block.title === '鼻内镜').lines, ['已上传照片，见报告图片']);
+  assert.deepEqual(buildXiongChatReport(emptyXiongChatAnswers()).blocks.find(block => block.title === '鼻内镜').lines, ['未上传']);
+  const chat = await read('../src/features/xiong-home/XiongChatIntake.tsx');
+  assert.match(chat, /saveEndoscopePhoto\(id, answers\.endoscope\)/);
+  assert.match(chat, /同意上传鼻内镜照片，仅供医生面诊参考/);
+  assert.match(chat, /endoscope: \{[^}]*maxSide: 1080 \}/);
+  assert.doesNotMatch(chat.match(/endoscope: \{[^}]*\}/)[0], /capture/);
+  assert.match(chat, /savedIds\.forEach\(removeIntakePhotos\)/);
+  const intake = await read('../src/features/xiong-home/xiongIntake.ts');
+  assert.match(intake, /endoscopePhoto\?: boolean/);
+  assert.match(intake, /"舌象照片", "鼻内镜照片"/);
+  const workspace = await read('../src/features/xiong-home/XiongWorkspace.tsx');
+  assert.match(workspace, /removeIntakePhotos\(entry\.id\)/);
 });

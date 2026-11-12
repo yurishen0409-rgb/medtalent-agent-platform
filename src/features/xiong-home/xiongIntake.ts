@@ -194,6 +194,8 @@ export type XiongIntakeEntry = {
   chips: string[]; history: string;
   // 11-11 起：患者自述原话、选了“不清楚”的题、是否拍了舌象（照片另存本机，见 saveTonguePhoto）。
   complaint?: string; unsure?: string[]; tonguePhoto?: boolean; tongueConsentAt?: string;
+  // 11-12 起：是否上传了鼻内镜照片（照片另存本机，同舌象）。
+  endoscopePhoto?: boolean; endoscopeConsentAt?: string;
   doctor?: { turbinateLeft: number | null; turbinateRight: number | null; observed: string[] };
 };
 export type XiongScaleEntry = { id: string; createdAt: string; kind: "scale"; scale: XiongScaleId; answers: number[]; summary: string; activities?: string[] };
@@ -209,6 +211,19 @@ export function readTonguePhoto(id: string) {
 }
 export function removeTonguePhoto(id: string) {
   try { window.localStorage.removeItem(tongueKey(id)); } catch { /* 隐私模式 */ }
+}
+// 鼻内镜照片同样只存本机（11-12）。
+const endoscopeKey = (id: string) => `xiong-endoscope-v1:${id}`;
+export function saveEndoscopePhoto(id: string, photo: string) {
+  try { window.localStorage.setItem(endoscopeKey(id), photo); return true; } catch { return false; }
+}
+export function readEndoscopePhoto(id: string) {
+  try { return window.localStorage.getItem(endoscopeKey(id)); } catch { return null; }
+}
+// 删除记录时把这条记录的舌象、鼻内镜照片一起清掉。
+export function removeIntakePhotos(id: string) {
+  removeTonguePhoto(id);
+  try { window.localStorage.removeItem(endoscopeKey(id)); } catch { /* 隐私模式 */ }
 }
 
 export function researchId(date = new Date(), random = Math.random()) {
@@ -226,6 +241,7 @@ export function intakeSummary(entry: XiongIntakeEntry) {
     entry.history.trim() ? `现病史：${entry.history.trim()}` : "",
     entry.unsure?.length ? `不清楚：${entry.unsure.length} 题，请医生面诊时询问` : "",
     entry.tonguePhoto ? "舌象照片：已拍（存于本设备）" : "",
+    entry.endoscopePhoto ? "鼻内镜照片：已上传（存于本设备）" : "",
   ];
   const group = entry.doctor ? turbinateGroup(entry.doctor.turbinateLeft, entry.doctor.turbinateRight) : "";
   if (group) lines.push(`下鼻甲分度（医生填写）：左 ${entry.doctor!.turbinateLeft} 分，右 ${entry.doctor!.turbinateRight} 分，${group}`);
@@ -241,11 +257,11 @@ export function intakeVisitNotes(entry: XiongIntakeEntry) {
 const csvCell = (value: string) => /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 // 导出给研究录入用，列名对应 CRF；不含任何身份信息。
 export function entriesToCsv(entries: readonly XiongEntry[]) {
-  const header = ["研究编号", "记录时间", "类型", ...XIONG_BASIC_FIELDS.map(field => field.label), ...XIONG_TCM_GROUPS.map(group => group.title), "现病史", "患者自述", "不清楚的题数", "舌象照片", "下鼻甲左", "下鼻甲右", "下鼻甲分组", "望闻问", "量表", "量表结果", "量表作答"];
+  const header = ["研究编号", "记录时间", "类型", ...XIONG_BASIC_FIELDS.map(field => field.label), ...XIONG_TCM_GROUPS.map(group => group.title), "现病史", "患者自述", "不清楚的题数", "舌象照片", "鼻内镜照片", "下鼻甲左", "下鼻甲右", "下鼻甲分组", "望闻问", "量表", "量表结果", "量表作答"];
   const rows = entries.map(entry => entry.kind === "intake"
-    ? [entry.id, entry.createdAt, "自填表", ...XIONG_BASIC_FIELDS.map(field => entry.basic[field.key] ?? ""), ...XIONG_TCM_GROUPS.map(group => group.chips.filter(chip => entry.chips.includes(chip)).join("、")), entry.history, entry.complaint ?? "", String(entry.unsure?.length ?? ""), entry.tonguePhoto ? "已拍" : "",
+    ? [entry.id, entry.createdAt, "自填表", ...XIONG_BASIC_FIELDS.map(field => entry.basic[field.key] ?? ""), ...XIONG_TCM_GROUPS.map(group => group.chips.filter(chip => entry.chips.includes(chip)).join("、")), entry.history, entry.complaint ?? "", String(entry.unsure?.length ?? ""), entry.tonguePhoto ? "已拍" : "", entry.endoscopePhoto ? "已上传" : "",
       String(entry.doctor?.turbinateLeft ?? ""), String(entry.doctor?.turbinateRight ?? ""), entry.doctor ? turbinateGroup(entry.doctor.turbinateLeft, entry.doctor.turbinateRight) : "", entry.doctor?.observed.join("、") ?? "", "", "", ""]
-    : [entry.id, entry.createdAt, "量表", ...XIONG_BASIC_FIELDS.map(() => ""), ...XIONG_TCM_GROUPS.map(() => ""), "", "", "", "", "", "", "", "", XIONG_SCALES.find(scale => scale.id === entry.scale)?.title ?? entry.scale, entry.summary, entry.answers.join(" ") + (entry.activities?.some(Boolean) ? `（受限活动：${entry.activities.filter(Boolean).join("、")}）` : "")]);
+    : [entry.id, entry.createdAt, "量表", ...XIONG_BASIC_FIELDS.map(() => ""), ...XIONG_TCM_GROUPS.map(() => ""), "", "", "", "", "", "", "", "", "", XIONG_SCALES.find(scale => scale.id === entry.scale)?.title ?? entry.scale, entry.summary, entry.answers.join(" ") + (entry.activities?.some(Boolean) ? `（受限活动：${entry.activities.filter(Boolean).join("、")}）` : "")]);
   return "﻿" + [header, ...rows].map(row => row.map(cell => csvCell(String(cell))).join(",")).join("\n");
 }
 

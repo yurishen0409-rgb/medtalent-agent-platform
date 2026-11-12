@@ -72,12 +72,14 @@ export const XIONG_CHAT_TEXT = {
   prefilled: "按您刚才说的已先勾好，请核对",
   tongue: "如方便，请拍一张舌头的照片",
   tongueHint: "自然光下伸出舌头，拍清舌面",
+  endoscope: "做过鼻内镜检查的话，可上传照片",
+  endoscopeHint: "从相册选清晰的一张，没有可跳过",
 } as const;
 
 // 只教“怎么答”的提示句：答完就从聊天记录里收起，只留问题和回答，免得挤占窗口（本人 11-11 定）。
 export const XIONG_HINT_LINES: ReadonlySet<string> = new Set([
   XIONG_CHAT_TEXT.gate, XIONG_CHAT_TEXT.basic, XIONG_CHAT_TEXT.complaintHint, XIONG_CHAT_TEXT.confirmHint,
-  XIONG_CHAT_TEXT.prefilled, XIONG_CHAT_TEXT.tongueHint, XIONG_CHAT_TEXT.autoSaved, XIONG_CHAT_TEXT.multi, "可多选，鼻子已先帮您选上。",
+  XIONG_CHAT_TEXT.prefilled, XIONG_CHAT_TEXT.tongueHint, XIONG_CHAT_TEXT.endoscopeHint, XIONG_CHAT_TEXT.autoSaved, XIONG_CHAT_TEXT.multi, "可多选，鼻子已先帮您选上。",
 ]);
 export const xiongAnsweredLines = (lines: readonly string[]) => lines.filter(line => !XIONG_HINT_LINES.has(line));
 
@@ -98,6 +100,7 @@ export type XiongChatStep =
   | { kind: "complaint"; part: number; lines: string[] }
   | { kind: "confirm"; part: number; lines: string[] }
   | { kind: "tongue"; part: number; lines: string[] }
+  | { kind: "endoscope"; part: number; lines: string[] }
   | { kind: "text"; part: number; lines: string[]; key: "history"; placeholder: string }
   | { kind: "tags"; part: number; lines: string[]; group: number; block?: number; cat?: number }
   | { kind: "gate"; part: number; lines: string[]; group: number; block?: number }
@@ -130,6 +133,8 @@ export function buildXiongChatSteps(): XiongChatStep[] {
     }),
     { kind: "text", part: 1, key: "history", placeholder: "如：鼻塞三年，秋冬加重", lines: ["起病多久、怎么变化的，可补充几句。"] },
     { kind: "tongue", part: 1, lines: [XIONG_CHAT_TEXT.tongue, XIONG_CHAT_TEXT.tongueHint] },
+    // 11-12 本人定：舌象之外，可上传鼻内镜检查照片（选填，从相册选）。
+    { kind: "endoscope", part: 1, lines: [XIONG_CHAT_TEXT.endoscope, XIONG_CHAT_TEXT.endoscopeHint] },
     ...screen.items.map((_, index): XiongChatStep => ({
       kind: "scale", part: 2, item: index,
       lines: index === 0 ? [XIONG_CHAT_TEXT.rest, XIONG_CHAT_TEXT.autoSaved, partOpening(2), "接下来几题，问问您心里的感受。"] : [],
@@ -158,6 +163,9 @@ export type XiongChatAnswers = {
   // 舌象照片（压缩后的 JPEG data URL）及拍照授权时间。
   tongue?: string;
   tongueConsentAt?: string;
+  // 鼻内镜照片（压缩后的 JPEG data URL）及上传授权时间。
+  endoscope?: string;
+  endoscopeConsentAt?: string;
 };
 
 export const emptyXiongChatAnswers = (): XiongChatAnswers => ({ basic: {}, chips: [], history: "", screen: [null, null, null, null], skipped: [] });
@@ -192,6 +200,7 @@ export function xiongAnswerText(step: XiongChatStep, answers: XiongChatAnswers):
   if (step.kind === "complaint") return answers.complaint?.trim() || null;
   if (step.kind === "confirm") return answers.covered?.length ? `已说到：${answers.covered.map(key => key.split("/").at(-1)).join("、")}` : "已核对";
   if (step.kind === "tongue") return answers.tongue ? "已拍舌象照片" : null;
+  if (step.kind === "endoscope") return answers.endoscope ? "已上传鼻内镜照片" : null;
   if (step.kind === "gate") {
     const follow = followOf(step);
     const picked = answers.gates?.[id];
@@ -258,6 +267,7 @@ export function buildXiongChatReport(answers: XiongChatAnswers, scl90Summary: st
     { title: "一般资料", lines: [basic || "未填写"] },
     { title: "中医问诊", lines: tcm.length ? tcm : ["未填写"] },
     { title: "舌象", lines: [answers.tongue ? "已拍照片，见报告图片" : "未拍"] },
+    { title: "鼻内镜", lines: [answers.endoscope ? "已上传照片，见报告图片" : "未上传"] },
     { title: "情志初筛", lines: [`${phq.line} · ${gad.line}`] },
     { title: "SCL-90", lines: [scl90Summary ?? "未填写"] },
   ];

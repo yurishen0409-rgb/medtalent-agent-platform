@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDoctorLocalState } from "../../hooks/useDoctorLocalState";
 import {
-  entriesToCsv, intakeRedFlags, intakeVisitNotes, intakeSummary, normalizeXiongEntries, removeTonguePhoto, researchId, scoreXiongScale, turbinateGroup,
+  entriesToCsv, intakeRedFlags, intakeVisitNotes, intakeSummary, normalizeXiongEntries, removeIntakePhotos, researchId, scoreXiongScale, turbinateGroup,
   RQLQ_ACTIVITIES, XIONG_BASIC_FIELDS, XIONG_DOCTOR_GROUPS, XIONG_INTAKE_SECTION, XIONG_PATIENT_SCALES, XIONG_SCALES, XIONG_TCM_GROUPS, XIONG_TURBINATE_SCORES,
   type XiongBasicKey, type XiongEntry, type XiongIntakeEntry, type XiongScale, type XiongScaleEntry,
 } from "./xiongIntake";
@@ -108,7 +108,7 @@ export function XiongIntakePanel({ slug }: { slug: string }) {
       {intakes.length ? intakes.map(entry => <article className="xiong-entry" key={entry.id}>
         <b>{entry.id}</b><small>{new Date(entry.createdAt).toLocaleString("zh-CN")}</small>
         <p>{intakeSummary(entry)}</p>
-        <div className="xiong-entry-actions"><button type="button" onClick={() => void copyNotes(intakeVisitNotes(entry)).then(copied => setNotice(copied ? `已复制 ${entry.id} 的就诊要点，可粘贴给医生。` : "复制失败，请长按记录文字手动复制。"))}>复制就诊要点</button><button type="button" className="danger" onClick={() => { if (!window.confirm("确定删除这条记录吗？")) return; removeTonguePhoto(entry.id); setEntries(current => normalizeXiongEntries(current).filter(item => item.id !== entry.id)); }}>删除</button></div>
+        <div className="xiong-entry-actions"><button type="button" onClick={() => void copyNotes(intakeVisitNotes(entry)).then(copied => setNotice(copied ? `已复制 ${entry.id} 的就诊要点，可粘贴给医生。` : "复制失败，请长按记录文字手动复制。"))}>复制就诊要点</button><button type="button" className="danger" onClick={() => { if (!window.confirm("确定删除这条记录吗？")) return; removeIntakePhotos(entry.id); setEntries(current => normalizeXiongEntries(current).filter(item => item.id !== entry.id)); }}>删除</button></div>
       </article>) : <p className="xiong-empty">还没有自填记录。</p>}
     </section>
   </div>;

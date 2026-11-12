@@ -6,7 +6,7 @@ import {
   XIONG_CHAT_PARTS, XIONG_CHAT_TEXT, followOf, XIONG_REGIONS, isXiongStepActive, xiongStepChips, xiongExclusiveIn, xiongChipLabel, xiongAnsweredLines, type XiongChatAnswers, type XiongChatStep,
   XIONG_AREAS, XIONG_SURROUNDINGS, XIONG_OCCUPATIONS, XIONG_EDUCATION, XIONG_UNSURE, applyXiongPrefill, xiongBasicLine, xiongVocabulary, XIONG_TALK_GUIDE,
 } from "./xiongChat";
-import { researchId, removeTonguePhoto, saveTonguePhoto, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
+import { researchId, removeIntakePhotos, saveEndoscopePhoto, saveTonguePhoto, XIONG_SCALES, XIONG_TCM_GROUPS, type XiongEntry, type XiongIntakeEntry, type XiongScaleEntry } from "./xiongIntake";
 
 const STEPS = buildXiongChatSteps();
 const SCREEN = XIONG_SCALES.find(scale => scale.id === "screen")!;
@@ -15,7 +15,7 @@ const CONSENT = "我了解：本表只用于整理就诊资料，供医生参考
 
 type Draft = { step: number; answers: XiongChatAnswers };
 // v5：11-11 基本情况改卡片、加自述和舌象，题序变了，旧草稿不再沿用。
-const draftKey = (slug: string) => `xiong-chat-draft-v5:${slug}`;
+const draftKey = (slug: string) => `xiong-chat-draft-v6:${slug}`;
 function readDraft(slug: string): Draft | null {
   try {
     const value = JSON.parse(window.localStorage.getItem(draftKey(slug)) ?? "null");
@@ -185,12 +185,12 @@ function ComplaintAnswer({ initial, busy, onDone }: { initial: string; busy: boo
   </div>;
 }
 
-// 舌象拍照：先勾授权，再拍；压缩到 720px 以内的 JPEG（本人 11-11 定要采集舌象）。
-async function compressPhoto(file: File) {
+// 舌象拍照、鼻内镜照片：先勾授权，再拍或选；压缩成 JPEG（本人 11-11 定采集舌象，11-12 加鼻内镜照片）。
+async function compressPhoto(file: File, maxSide = 720) {
   const url = URL.createObjectURL(file);
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = url; });
-    const scale = Math.min(1, 720 / Math.max(image.width, image.height));
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
     canvas.getContext("2d")!.drawImage(image, 0, 0, canvas.width, canvas.height);
@@ -198,7 +198,15 @@ async function compressPhoto(file: File) {
   } finally { URL.revokeObjectURL(url); }
 }
 
-function TongueAnswer({ initial, consented, onDone }: { initial?: string; consented: boolean; onDone: (photo: string, consentAt: string) => void }) {
+type PhotoKind = { agree: string; pick: string; repick: string; alt: string; capture?: "user"; maxSide: number };
+const PHOTO_KINDS: Record<"tongue" | "endoscope", PhotoKind> = {
+  tongue: { agree: "同意上传舌象照片，仅供医生面诊参考", pick: "拍舌头照片", repick: "重拍", alt: "舌象照片预览", capture: "user", maxSide: 720 },
+  // 鼻内镜照片多在检查报告或手机相册里，不限定拍照，可从相册选；保留更多细节，放宽到 1080px。
+  endoscope: { agree: "同意上传鼻内镜照片，仅供医生面诊参考", pick: "选鼻内镜照片", repick: "重选", alt: "鼻内镜照片预览", maxSide: 1080 },
+};
+
+function PhotoAnswer({ kind, initial, consented, onDone }: { kind: keyof typeof PHOTO_KINDS; initial?: string; consented: boolean; onDone: (photo: string, consentAt: string) => void }) {
+  const text = PHOTO_KINDS[kind];
   const [agree, setAgree] = useState(consented);
   const [photo, setPhoto] = useState(initial ?? "");
   const [error, setError] = useState("");
@@ -206,14 +214,14 @@ function TongueAnswer({ initial, consented, onDone }: { initial?: string; consen
   const pick = async (file?: File) => {
     if (!file) return;
     setError("");
-    try { setPhoto(await compressPhoto(file)); } catch { setError("照片读取失败，请重拍。"); }
+    try { setPhoto(await compressPhoto(file, text.maxSide)); } catch { setError(`照片读取失败，请${text.repick}。`); }
   };
   return <div className="xc-tongue">
-    <label className="xc-agree"><input type="checkbox" checked={agree} onChange={event => setAgree(event.target.checked)} /> 同意上传舌象照片，仅供医生面诊参考</label>
-    <input ref={input} type="file" accept="image/*" capture="user" hidden onChange={event => void pick(event.target.files?.[0])} />
-    {photo ? <img className="xc-tongue-photo" src={photo} alt="舌象照片预览" /> : null}
+    <label className="xc-agree"><input type="checkbox" checked={agree} onChange={event => setAgree(event.target.checked)} /> {text.agree}</label>
+    <input ref={input} type="file" accept="image/*" capture={text.capture} hidden onChange={event => void pick(event.target.files?.[0])} />
+    {photo ? <img className="xc-tongue-photo" src={photo} alt={text.alt} /> : null}
     {error && <p className="xc-hint">{error}</p>}
-    <button type="button" className={photo ? "xc-link" : "xc-primary"} disabled={!agree} onClick={() => input.current?.click()}><CameraIcon size={18} /> {photo ? "重拍" : "拍舌头照片"}</button>
+    <button type="button" className={photo ? "xc-link" : "xc-primary"} disabled={!agree} onClick={() => input.current?.click()}><CameraIcon size={18} /> {photo ? text.repick : text.pick}</button>
     {photo && <button type="button" className="xc-primary" disabled={!agree} onClick={() => onDone(photo, new Date().toISOString())}>用这张，下一步</button>}
   </div>;
 }
@@ -357,12 +365,14 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
     const now = new Date().toISOString();
     const saved: XiongEntry[] = [];
     const basic = Object.fromEntries(Object.entries(answers.basic).filter(([, value]) => value));
-    if (answers.chips.length || answers.history.trim() || answers.complaint?.trim() || answers.tongue || Object.keys(basic).length) {
+    if (answers.chips.length || answers.history.trim() || answers.complaint?.trim() || answers.tongue || answers.endoscope || Object.keys(basic).length) {
       const id = researchId();
       const tonguePhoto = Boolean(answers.tongue && saveTonguePhoto(id, answers.tongue));
+      const endoscopePhoto = Boolean(answers.endoscope && saveEndoscopePhoto(id, answers.endoscope));
       saved.push({ id, createdAt: now, kind: "intake", basic, chips: answers.chips, history: answers.history.trim(),
         ...(answers.complaint?.trim() ? { complaint: answers.complaint.trim() } : {}), ...(answers.unsure?.length ? { unsure: answers.unsure } : {}),
-        ...(tonguePhoto ? { tonguePhoto, tongueConsentAt: answers.tongueConsentAt } : {}) } satisfies XiongIntakeEntry);
+        ...(tonguePhoto ? { tonguePhoto, tongueConsentAt: answers.tongueConsentAt } : {}),
+        ...(endoscopePhoto ? { endoscopePhoto, endoscopeConsentAt: answers.endoscopeConsentAt } : {}) } satisfies XiongIntakeEntry);
     }
     const report = buildXiongChatReport(answers);
     if (answers.screen.every(answer => answer !== null)) {
@@ -380,7 +390,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
   // 共用手机时清掉这份报告和它存下的记录。
   const clearLocal = () => {
     if (!window.confirm("清除后本机将移除这份报告，请先复制保存。")) return;
-    if (savedIds.length) { savedIds.forEach(removeTonguePhoto); onRemove(savedIds); }
+    if (savedIds.length) { savedIds.forEach(removeIntakePhotos); onRemove(savedIds); }
     restart();
     setNotice("本机记录已清除。");
   };
@@ -423,7 +433,8 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
           <button type="button" className="xc-primary" onClick={() => commit(v => v)}>对的，继续</button>
         </div>;
       }
-      case "tongue": return <TongueAnswer initial={answers.tongue} consented={Boolean(answers.tongueConsentAt)} onDone={(tongue, at) => commit(v => ({ ...v, tongue, tongueConsentAt: at }))} />;
+      case "tongue": return <PhotoAnswer key="tongue" kind="tongue" initial={answers.tongue} consented={Boolean(answers.tongueConsentAt)} onDone={(tongue, at) => commit(v => ({ ...v, tongue, tongueConsentAt: at }))} />;
+      case "endoscope": return <PhotoAnswer key="endoscope" kind="endoscope" initial={answers.endoscope} consented={Boolean(answers.endoscopeConsentAt)} onDone={(endoscope, at) => commit(v => ({ ...v, endoscope, endoscopeConsentAt: at }))} />;
       case "text": return <TextAnswer key={s.key} placeholder={s.placeholder} multiline initial={answers.history}
         onDone={value => commit(v => ({ ...v, history: value }))} />;
       case "tags": {
@@ -537,7 +548,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
         const open = !done || expanded.includes(p);
         const turns = STEPS.map((s, i) => [s, i] as const).filter(([s, i]) => s.part === p && i < Math.min(step, STEPS.length) && isXiongStepActive(s, answers));
         if (!turns.length) return null;
-        const brief = p === 0 ? xiongBasicLine(answers.basic) || "未填写" : p === 1 ? `已记 ${answers.chips.length} 项${answers.tongue ? " · 已拍舌象" : ""}` : `已答 ${answers.screen.filter(answer => answer !== null).length}/4 题`;
+        const brief = p === 0 ? xiongBasicLine(answers.basic) || "未填写" : p === 1 ? `已记 ${answers.chips.length} 项${answers.tongue ? " · 已拍舌象" : ""}${answers.endoscope ? " · 已传鼻内镜" : ""}` : `已答 ${answers.screen.filter(answer => answer !== null).length}/4 题`;
         return <div className="xc-part" key={name}>
           {done && <button type="button" className="xc-done" aria-expanded={open} onClick={() => setExpanded(list => list.includes(p) ? list.filter(item => item !== p) : [...list, p])}>
             <CheckIcon size={15} weight="bold" /> <b>{name}</b><span>{brief}</span><em>{open ? "收起" : "展开"} ›</em></button>}
@@ -563,6 +574,7 @@ export function XiongChatIntake({ slug, entries, onSave, onRemove, onScales, onD
           <header><b>就诊报告</b><small>{new Date().toISOString().slice(5, 10)} · 供医生参考{savedId ? ` · ${savedId}` : ""}</small></header>
           {report.blocks.map(block => <section key={block.title}><h4>{block.title}</h4>{block.lines.map(line => <p key={line}>{line}</p>)}</section>)}
           {answers.tongue && <figure className="xc-report-photo"><img src={answers.tongue} alt="舌象照片" /><figcaption>舌象照片</figcaption></figure>}
+          {answers.endoscope && <figure className="xc-report-photo"><img src={answers.endoscope} alt="鼻内镜照片" /><figcaption>鼻内镜照片</figcaption></figure>}
           {report.advice.map(line => <p className="xc-advice" key={line}>{line}</p>)}
         </article>
         <button type="button" className="xc-primary" onClick={() => void copy()}>复制报告全文</button>
