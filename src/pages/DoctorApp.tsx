@@ -123,7 +123,7 @@ import TangFeatureGrid from "../features/services/TangFeatureGrid";
 import TangDoctorBio, { TangDoctorCard } from "../features/tang-home/TangDoctorBio";
 import { DoctorVideoItem, EducationArticle, SpecialtyVisitSummary, TangEducationPanel, TangVisitSummary, TangClinicPanel, TangFamilyPanel, TangMessagePanel, TangMorePanel, TangRelaxPanel, TangMedicationPanel, TangSmokingPanel } from "../features/tang-home/TangServicePanels";
 import { DEMO_PREFIX, demoReply } from "../features/tang-home/demoReplies.mjs";
-import { chenDemoReply } from "../features/services/chenEducation";
+import { chenCatalogArticles, chenDemoReply } from "../features/services/chenEducation";
 import { DoctorMaterials } from "../features/services/DoctorMaterials";
 import { getDoctorCustom, enabledGroups, noticeLines, usesUnifiedTemplate } from "../features/services/doctorCustom";
 import { matchDoctorVideos } from "../features/services/videoMatch.mjs";
@@ -2328,7 +2328,8 @@ function DoctorAppBody() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const preview = useDoctorPreview();
-  const { doctor, loading, error, notFound, retry } = useDoctorResource(slug, preview, templatePreview ? templateId : undefined);
+  const { doctor: publishedDoctor, loading, error, notFound, retry } = useDoctorResource(slug, preview, templatePreview ? templateId : undefined);
+  const doctor = useMemo(() => publishedDoctor ? chenCatalogArticles(publishedDoctor) : null, [publishedDoctor]);
   const experience = useMemo(() => doctor ? doctorExperiences[doctor.slug] || createGenericExperience(doctor) : null, [doctor]);
   const tabStorageKey = useMemo(() => doctorSessionKey(preview ? previewStorageSlug(templatePreview ? "template~" + templateId : slug || "unknown") : slug || "unknown", "active-tab"), [slug, preview, templatePreview, templateId]);
   const [tab, setTab] = useState<Tab>(() => resolveDoctorEntryTab(preview ? pathname.replace("/admin/preview/", "/d/") : pathname, slug || "unknown", () => window.sessionStorage.getItem(tabStorageKey)));

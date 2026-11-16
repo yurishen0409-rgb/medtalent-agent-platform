@@ -1,6 +1,7 @@
 // 陈志凌的科普正文和未接模型时的演示回答。内容转述自医生提供的资料和公开指南，未经医生审核。
 // 不写剂量、方药和手术判断；讲稿里的用药页不进这里。
 import { DEMO_PREFIX } from "../tang-home/demoReplies.mjs";
+import { doctorProfiles } from "../../data/doctorProfiles.ts";
 
 export type ArticleDetail = { body: string[]; source: string };
 
@@ -73,6 +74,13 @@ const details: Record<string, ArticleDetail & { title: string }> = {
 };
 
 export const chenArticleDetails: Record<string, ArticleDetail> = details;
+
+// 线上后台的文章列表停在旧版，且后台表单改不了；陈志凌的文章以代码为准，首页展示的前三篇都有上面的正文。
+const chenArticles = doctorProfiles.find(item => item.slug === "chen-zhiling")?.articles ?? [];
+
+export function chenCatalogArticles<T extends { slug: string; builder?: unknown; articles: unknown[] }>(doctor: T): T {
+  return doctor.slug === "chen-zhiling" && !doctor.builder ? { ...doctor, articles: chenArticles } : doctor;
+}
 
 const replies: Record<string, string> = {
   "孩子反复鼻塞、打喷嚏，就诊前记什么？": "可以记下症状什么时候发作、多久一次、有多严重，可能的诱因，用过什么药，家里有没有人过敏。也留意孩子有没有咳嗽、喘息、打鼾。这些可以记在“症状记录”里，就诊准备会自动整理。",
