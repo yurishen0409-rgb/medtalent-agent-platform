@@ -34,6 +34,8 @@ const pending = "待医生提供";
 export const doctorCustoms: Record<string, DoctorCustom> = {
   "tang-jinsong": {
     unifiedTemplate: true,
+    // 照片来自本人 11-02 提供的医生简介图，授权待确认；2026-11-06 本人要求恢复显示。
+    introPhoto: "/assets/doctors/portraits/tang-jinsong-intro.jpeg",
     servicesIntro: "了解怎么照顾自己，把就诊前的准备做好。",
     featureGroups: [
       { title: "心理健康支持", items: ["今日心境", "健康宣教", "家属照护"] },
