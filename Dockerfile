@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# 部署时用 --build-arg APP_COMMIT=$(git rev-parse --short HEAD) 传入提交号，写进网页源码的版本标记（页面上不显示）。
+ARG APP_COMMIT=""
 RUN npm run build && npm prune --omit=dev
 
 FROM node:24-bookworm-slim AS runtime

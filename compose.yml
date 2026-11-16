@@ -1,7 +1,10 @@
 name: medtalent-agent-platform
 services:
   platform:
-    build: .
+    build:
+      context: .
+      args:
+        APP_COMMIT: ${APP_COMMIT:-}
     image: medtalent-agent-platform:1.0.0
     init: true
     restart: unless-stopped
